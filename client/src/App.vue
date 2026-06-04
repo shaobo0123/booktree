@@ -1,0 +1,263 @@
+<template>
+  <div class="flex h-screen flex-col overflow-hidden bg-slate-100 text-slate-900">
+    <Toolbar
+      v-model:query="searchQuery"
+      @create-bookmark="openCreate('bookmark', selectedFolderId)"
+      @create-folder="openCreate('folder', selectedFolderId)"
+      @create-root="openCreate('folder', null, '新建总书签')"
+      @export="openExportModal"
+      @import="handleImport"
+    />
+
+    <section v-if="searchQuery.trim()" class="border-b border-slate-200 bg-white px-5 py-3">
+      <div class="mb-2 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-800">搜索结果</h2>
+        <span class="text-xs text-slate-500">{{ searchLoading ? '搜索中...' : `${searchResults.length} 项` }}</span>
+      </div>
+      <div v-if="searchError" class="text-sm text-rose-600">{{ searchError }}</div>
+      <div v-else-if="!searchLoading && searchResults.length === 0" class="text-sm text-slate-500">没有匹配的书签</div>
+      <div v-else class="grid max-h-44 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+        <button
+          v-for="result in searchResults"
+          :key="result.id"
+          class="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
+          type="button"
+          @click="openBookmark(result)"
+        >
+          <span class="block truncate text-sm font-medium text-slate-800">{{ result.title }}</span>
+          <span class="block truncate text-xs text-slate-500">{{ result.url }}</span>
+        </button>
+      </div>
+    </section>
+
+    <ColumnTree
+      :error="loadError"
+      :loading="loading"
+      :selected-path="selectedPath"
+      :tree="tree"
+      @delete="handleDelete"
+      @edit="openEdit"
+      @open="openBookmark"
+      @select="selectFolder"
+    />
+
+    <BookmarkFormModal
+      v-if="modalOpen"
+      :default-parent-id="modalDefaultParentId"
+      :default-type="modalDefaultType"
+      :folders="folderOptions"
+      :initial="editingNode"
+      :title="modalTitle"
+      @close="closeModal"
+      @save="handleSave"
+    />
+
+    <ExportModal
+      v-if="exportModalOpen"
+      :default-root-id="selectedFolderId"
+      :tree="tree"
+      @close="closeExportModal"
+      @export="handleExport"
+    />
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue';
+import {
+  createBookmark,
+  deleteBookmark,
+  exportBookmarks,
+  getBookmarkTree,
+  importBookmarks,
+  searchBookmarks,
+  updateBookmark
+} from './api/bookmarks';
+import BookmarkFormModal from './components/BookmarkFormModal.vue';
+import ColumnTree from './components/ColumnTree.vue';
+import ExportModal from './components/ExportModal.vue';
+import Toolbar from './components/Toolbar.vue';
+import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from './types/bookmark';
+
+interface FolderOption {
+  id: string;
+  label: string;
+}
+
+const tree = ref<BookmarkNode[]>([]);
+const selectedPath = ref<string[]>([]);
+const loading = ref(false);
+const loadError = ref<string | null>(null);
+const modalOpen = ref(false);
+const modalTitle = ref('新增');
+const modalDefaultType = ref<BookmarkType>('folder');
+const modalDefaultParentId = ref<string | null>(null);
+const editingNode = ref<BookmarkNode | null>(null);
+const exportModalOpen = ref(false);
+const searchQuery = ref('');
+const searchResults = ref<BookmarkNode[]>([]);
+const searchLoading = ref(false);
+const searchError = ref<string | null>(null);
+let searchTimer: number | undefined;
+
+const selectedFolderId = computed(() => selectedPath.value[selectedPath.value.length - 1] ?? null);
+
+const folderOptions = computed<FolderOption[]>(() => {
+  const result: FolderOption[] = [];
+
+  function visit(nodes: BookmarkNode[], prefix: string) {
+    for (const node of nodes) {
+      if (node.type !== 'folder') {
+        continue;
+      }
+      const label = prefix ? `${prefix} / ${node.title}` : node.title;
+      result.push({ id: node.id, label });
+      visit(node.children, label);
+    }
+  }
+
+  visit(tree.value, '');
+  return result;
+});
+
+async function loadTree() {
+  loading.value = true;
+  loadError.value = null;
+  try {
+    tree.value = await getBookmarkTree();
+  } catch (error) {
+    loadError.value = error instanceof Error ? error.message : '加载失败';
+  } finally {
+    loading.value = false;
+  }
+}
+
+function findPath(nodes: BookmarkNode[], id: string, parents: string[] = []): string[] | null {
+  for (const node of nodes) {
+    const nextPath = [...parents, node.id];
+    if (node.id === id) {
+      return nextPath;
+    }
+    const childPath = findPath(node.children, id, nextPath);
+    if (childPath) {
+      return childPath;
+    }
+  }
+
+  return null;
+}
+
+function selectFolder(node: BookmarkNode) {
+  if (node.type !== 'folder') {
+    return;
+  }
+
+  const path = findPath(tree.value, node.id);
+  if (path) {
+    selectedPath.value = path;
+  }
+}
+
+function openBookmark(node: BookmarkNode) {
+  if (node.url) {
+    window.open(node.url, '_blank', 'noopener,noreferrer');
+  }
+}
+
+function openCreate(type: BookmarkType, parentId: string | null, title = type === 'folder' ? '新建文件夹' : '新建书签') {
+  editingNode.value = null;
+  modalDefaultType.value = type;
+  modalDefaultParentId.value = parentId;
+  modalTitle.value = title;
+  modalOpen.value = true;
+}
+
+function openEdit(node: BookmarkNode) {
+  editingNode.value = node;
+  modalDefaultType.value = node.type;
+  modalDefaultParentId.value = node.parent_id;
+  modalTitle.value = '编辑书签';
+  modalOpen.value = true;
+}
+
+function closeModal() {
+  modalOpen.value = false;
+}
+
+async function handleSave(payload: BookmarkFormPayload) {
+  try {
+    if (editingNode.value) {
+      await updateBookmark(editingNode.value.id, payload);
+    } else {
+      await createBookmark(payload);
+    }
+    closeModal();
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '保存失败');
+  }
+}
+
+async function handleDelete(node: BookmarkNode) {
+  const message = node.type === 'folder' ? `确定删除文件夹“${node.title}”及其所有子节点吗？` : `确定删除书签“${node.title}”吗？`;
+  if (!window.confirm(message)) {
+    return;
+  }
+
+  try {
+    await deleteBookmark(node.id);
+    selectedPath.value = selectedPath.value.filter((id) => id !== node.id);
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '删除失败');
+  }
+}
+
+async function handleImport(file: File) {
+  try {
+    const result = await importBookmarks(file);
+    await loadTree();
+    window.alert(`已导入 ${result.imported} 个节点`);
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '导入失败');
+  }
+}
+
+function openExportModal() {
+  exportModalOpen.value = true;
+}
+
+function closeExportModal() {
+  exportModalOpen.value = false;
+}
+
+function handleExport(rootId: string | null) {
+  closeExportModal();
+  exportBookmarks(rootId);
+}
+
+watch(searchQuery, (value) => {
+  window.clearTimeout(searchTimer);
+  const query = value.trim();
+  if (!query) {
+    searchResults.value = [];
+    searchError.value = null;
+    searchLoading.value = false;
+    return;
+  }
+
+  searchLoading.value = true;
+  searchTimer = window.setTimeout(async () => {
+    try {
+      searchResults.value = await searchBookmarks(query);
+      searchError.value = null;
+    } catch (error) {
+      searchError.value = error instanceof Error ? error.message : '搜索失败';
+    } finally {
+      searchLoading.value = false;
+    }
+  }, 250);
+});
+
+onMounted(loadTree);
+</script>
