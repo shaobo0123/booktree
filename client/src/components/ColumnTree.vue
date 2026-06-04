@@ -28,8 +28,11 @@
         v-for="column in columns"
         :key="column.key"
         :nodes="column.nodes"
+        :parent-id="column.parentId"
         :selected-id="column.selectedId"
         :title="column.title"
+        @create-bookmark="$emit('create-bookmark', $event)"
+        @create-folder="$emit('create-folder', $event)"
         @delete="$emit('delete', $event)"
         @edit="$emit('edit', $event)"
         @open="$emit('open', $event)"
@@ -61,6 +64,8 @@ defineEmits<{
   edit: [node: BookmarkNode];
   delete: [node: BookmarkNode];
   reorder: [parentId: string | null, orderedIds: string[]];
+  'create-folder': [parentId: string | null];
+  'create-bookmark': [parentId: string | null];
 }>();
 
 function findIn(nodes: BookmarkNode[], id: string): BookmarkNode | null {
@@ -77,12 +82,13 @@ function findIn(nodes: BookmarkNode[], id: string): BookmarkNode | null {
 }
 
 const columns = computed(() => {
-  const result: Array<{ key: string; title: string; nodes: BookmarkNode[]; selectedId: string | null }> = [
+  const result: Array<{ key: string; title: string; nodes: BookmarkNode[]; selectedId: string | null; parentId: string | null }> = [
     {
       key: 'root',
-      title: '总书签',
+      title: '根书签',
       nodes: props.tree,
-      selectedId: props.selectedPath[0] ?? null
+      selectedId: props.selectedPath[0] ?? null,
+      parentId: null
     }
   ];
 
@@ -96,7 +102,8 @@ const columns = computed(() => {
       key: selected.id,
       title: selected.title,
       nodes: selected.children,
-      selectedId: props.selectedPath[index + 1] ?? null
+      selectedId: props.selectedPath[index + 1] ?? null,
+      parentId: selected.id
     });
   }
 

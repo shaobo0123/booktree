@@ -11,14 +11,6 @@
       <div class="flex flex-wrap items-center gap-2">
         <button class="toolbar-primary" type="button" @click="$emit('create-root')">
           <Plus class="h-4 w-4" :stroke-width="2.25" />
-          <span>新建总书签</span>
-        </button>
-        <button class="toolbar-button" type="button" @click="$emit('create-folder')">
-          <FolderPlus class="h-4 w-4" :stroke-width="2.25" />
-          <span>新建文件夹</span>
-        </button>
-        <button class="toolbar-button" type="button" @click="$emit('create-bookmark')">
-          <BookmarkPlus class="h-4 w-4" :stroke-width="2.25" />
           <span>新建书签</span>
         </button>
         <button class="toolbar-button" type="button" @click="openFilePicker">
@@ -49,7 +41,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { BookmarkPlus, Download, FolderPlus, LibraryBig, Plus, Search, Upload } from 'lucide-vue-next';
+import { Download, LibraryBig, Plus, Search, Upload } from 'lucide-vue-next';
 
 defineProps<{
   query: string;
@@ -58,8 +50,6 @@ defineProps<{
 const emit = defineEmits<{
   'update:query': [value: string];
   'create-root': [];
-  'create-folder': [];
-  'create-bookmark': [];
   import: [file: File];
   export: [];
 }>();

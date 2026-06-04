@@ -2,9 +2,7 @@
   <div class="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
     <Toolbar
       v-model:query="searchQuery"
-      @create-bookmark="openCreate('bookmark', selectedFolderId)"
-      @create-folder="openCreate('folder', selectedFolderId)"
-      @create-root="openCreate('folder', null, '新建总书签')"
+      @create-root="openCreate('folder', null, '新建根目录')"
       @export="openExportModal"
       @import="handleImport"
     />
@@ -43,6 +41,8 @@
       :loading="loading"
       :selected-path="selectedPath"
       :tree="tree"
+      @create-bookmark="openCreate('bookmark', $event)"
+      @create-folder="openCreate('folder', $event)"
       @delete="handleDelete"
       @edit="openEdit"
       @open="openBookmark"
