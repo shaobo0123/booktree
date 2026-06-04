@@ -261,6 +261,17 @@ export async function importBookmarkNodes(nodes: ImportedBookmarkNode[]) {
   return createImportedBranch(nodes, null);
 }
 
+export async function reorderBookmarks(parentId: string | null, orderedIds: string[]): Promise<void> {
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.bookmark.update({
+        where: { id },
+        data: { sortOrder: (index + 1) * 10 }
+      })
+    )
+  );
+}
+
 export async function exportBookmarkHtml() {
   return createBookmarkHtml(await getBookmarkTree());
 }

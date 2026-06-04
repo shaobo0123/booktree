@@ -64,6 +64,13 @@ export async function importBookmarks(file: File) {
   return response.json() as Promise<{ imported: number }>;
 }
 
+export function reorderBookmarks(parentId: string | null, orderedIds: string[]) {
+  return request<{ ok: boolean }>('/api/bookmarks/reorder', {
+    method: 'PUT',
+    body: JSON.stringify({ parent_id: parentId, ordered_ids: orderedIds })
+  });
+}
+
 export function exportBookmarks(rootId?: string | null) {
   const query = rootId ? `?root_id=${encodeURIComponent(rootId)}` : '';
   window.location.href = `/api/bookmarks/export${query}`;

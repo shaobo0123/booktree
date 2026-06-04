@@ -7,6 +7,7 @@ import {
   getBookmarkTree,
   importBookmarkNodes,
   removeBookmark,
+  reorderBookmarks,
   searchBookmarks,
   updateBookmark
 } from '../services/bookmarkService.js';
@@ -14,6 +15,11 @@ import { parseBookmarkHtml } from '../utils/bookmarkHtml.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+const reorderSchema = z.object({
+  parent_id: z.string().nullable(),
+  ordered_ids: z.array(z.string()).min(1)
+});
 
 const createSchema = z.object({
   title: z.string(),
@@ -47,6 +53,16 @@ router.get('/search', async (req, res) => {
     res.json(await searchBookmarks(String(req.query.q ?? '')));
   } catch (error) {
     res.status(500).json({ error: errorMessage(error) });
+  }
+});
+
+router.put('/reorder', async (req, res) => {
+  try {
+    const payload = reorderSchema.parse(req.body);
+    await reorderBookmarks(payload.parent_id, payload.ordered_ids);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ error: errorMessage(error) });
   }
 });
 

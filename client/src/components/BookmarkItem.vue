@@ -1,44 +1,54 @@
 <template>
   <div
-    class="group flex min-h-[60px] items-center gap-3 border-b border-slate-100 px-3 py-2 transition"
-    :class="selected ? 'bg-emerald-50' : 'hover:bg-slate-50'"
+    class="group relative my-1 flex min-h-[56px] items-center gap-3 rounded-lg px-3 py-2 transition-all duration-150"
+    :class="selected
+      ? 'bg-emerald-50/80 shadow-[inset_3px_0_0_0_theme(colors.emerald.500)]'
+      : 'hover:bg-slate-50'"
   >
+    <div class="drag-handle flex h-8 w-3 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing">
+      <GripVertical class="h-4 w-4 text-slate-400" :stroke-width="2.25" />
+    </div>
+
     <button class="flex min-w-0 flex-1 items-center gap-3 text-left" type="button" @click="handlePrimaryClick">
       <span
-        class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
-        :class="node.type === 'folder' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'"
+        class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-colors"
+        :class="node.type === 'folder'
+          ? 'bg-amber-100 text-amber-700 group-hover:bg-amber-200/70'
+          : 'bg-sky-100 text-sky-700 group-hover:bg-sky-200/70'"
       >
-        <Folder v-if="node.type === 'folder'" class="h-4 w-4" />
-        <LinkIcon v-else class="h-4 w-4" />
+        <Folder v-if="node.type === 'folder'" class="h-4 w-4" :stroke-width="2.25" />
+        <LinkIcon v-else class="h-4 w-4" :stroke-width="2.25" />
       </span>
+
       <span class="min-w-0 flex-1">
-        <span class="block truncate text-sm font-medium" :class="selected ? 'text-emerald-900' : 'text-slate-800'">
+        <span class="block truncate text-sm font-medium leading-snug" :class="selected ? 'text-emerald-900' : 'text-slate-800'">
           {{ node.title }}
         </span>
-        <span v-if="node.type === 'bookmark'" class="block truncate text-xs text-slate-500">
+        <span v-if="node.type === 'bookmark'" class="block truncate text-xs leading-snug text-slate-500">
           {{ node.url }}
         </span>
-        <span v-else class="block text-xs text-slate-500">
+        <span v-else class="block text-xs leading-snug text-slate-500">
           {{ node.children.length }} 项
         </span>
       </span>
-      <ChevronRight v-if="node.type === 'folder'" class="h-4 w-4 flex-shrink-0 text-slate-400" />
-      <ExternalLink v-else class="h-4 w-4 flex-shrink-0 text-slate-400" />
+
+      <ChevronRight v-if="node.type === 'folder'" class="h-4 w-4 flex-shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5" :stroke-width="2.25" />
+      <ExternalLink v-else class="h-4 w-4 flex-shrink-0 text-slate-400" :stroke-width="2.25" />
     </button>
 
-    <div class="flex flex-shrink-0 items-center gap-1 opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100">
-      <button class="icon-button" title="编辑" type="button" @click.stop="$emit('edit', node)">
-        <Pencil class="h-4 w-4" />
+    <div class="flex flex-shrink-0 items-center gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+      <button class="icon-btn" title="编辑" type="button" aria-label="编辑" @click.stop="$emit('edit', node)">
+        <Pencil class="h-4 w-4" :stroke-width="2.25" />
       </button>
-      <button class="icon-button text-rose-600 hover:bg-rose-50" title="删除" type="button" @click.stop="$emit('delete', node)">
-        <Trash2 class="h-4 w-4" />
+      <button class="icon-btn text-rose-600 hover:bg-rose-50 hover:text-rose-700" title="删除" type="button" aria-label="删除" @click.stop="$emit('delete', node)">
+        <Trash2 class="h-4 w-4" :stroke-width="2.25" />
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ChevronRight, ExternalLink, Folder, Link as LinkIcon, Pencil, Trash2 } from 'lucide-vue-next';
+import { ChevronRight, ExternalLink, Folder, GripVertical, Link as LinkIcon, Pencil, Trash2 } from 'lucide-vue-next';
 import type { BookmarkNode } from '../types/bookmark';
 
 const props = defineProps<{
@@ -64,7 +74,7 @@ function handlePrimaryClick() {
 </script>
 
 <style scoped>
-.icon-button {
-  @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-900;
+.icon-btn {
+  @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen flex-col overflow-hidden bg-slate-100 text-slate-900">
+  <div class="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
     <Toolbar
       v-model:query="searchQuery"
       @create-bookmark="openCreate('bookmark', selectedFolderId)"
@@ -9,23 +9,31 @@
       @import="handleImport"
     />
 
-    <section v-if="searchQuery.trim()" class="border-b border-slate-200 bg-white px-5 py-3">
-      <div class="mb-2 flex items-center justify-between">
+    <!-- Search Results -->
+    <section v-if="searchQuery.trim()" class="border-b border-slate-100 bg-white px-5 py-3">
+      <div class="mb-2.5 flex items-center justify-between">
         <h2 class="text-sm font-semibold text-slate-800">搜索结果</h2>
-        <span class="text-xs text-slate-500">{{ searchLoading ? '搜索中...' : `${searchResults.length} 项` }}</span>
+        <span class="text-xs text-slate-400">{{ searchLoading ? '搜索中...' : `${searchResults.length} 项` }}</span>
       </div>
-      <div v-if="searchError" class="text-sm text-rose-600">{{ searchError }}</div>
-      <div v-else-if="!searchLoading && searchResults.length === 0" class="text-sm text-slate-500">没有匹配的书签</div>
+      <div v-if="searchError" class="text-sm text-rose-500">{{ searchError }}</div>
+      <div v-else-if="!searchLoading && searchResults.length === 0" class="py-3 text-center text-sm text-slate-400">
+        没有匹配的书签
+      </div>
       <div v-else class="grid max-h-44 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
         <button
           v-for="result in searchResults"
           :key="result.id"
-          class="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
+          class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 px-3.5 py-2.5 text-left transition-all hover:border-emerald-200 hover:bg-emerald-50/60 hover:shadow-sm"
           type="button"
           @click="openBookmark(result)"
         >
-          <span class="block truncate text-sm font-medium text-slate-800">{{ result.title }}</span>
-          <span class="block truncate text-xs text-slate-500">{{ result.url }}</span>
+          <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
+            <LinkIcon class="h-4 w-4" :stroke-width="2.25" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-[13px] font-medium text-slate-800">{{ result.title }}</span>
+            <span class="block truncate text-xs text-slate-400">{{ result.url }}</span>
+          </span>
         </button>
       </div>
     </section>
@@ -38,6 +46,7 @@
       @delete="handleDelete"
       @edit="openEdit"
       @open="openBookmark"
+      @reorder="handleReorder"
       @select="selectFolder"
     />
 
@@ -45,9 +54,9 @@
       v-if="modalOpen"
       :default-parent-id="modalDefaultParentId"
       :default-type="modalDefaultType"
-      :folders="folderOptions"
       :initial="editingNode"
       :title="modalTitle"
+      :tree="tree"
       @close="closeModal"
       @save="handleSave"
     />
@@ -70,6 +79,7 @@ import {
   exportBookmarks,
   getBookmarkTree,
   importBookmarks,
+  reorderBookmarks,
   searchBookmarks,
   updateBookmark
 } from './api/bookmarks';
@@ -77,12 +87,8 @@ import BookmarkFormModal from './components/BookmarkFormModal.vue';
 import ColumnTree from './components/ColumnTree.vue';
 import ExportModal from './components/ExportModal.vue';
 import Toolbar from './components/Toolbar.vue';
+import { Link as LinkIcon } from 'lucide-vue-next';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from './types/bookmark';
-
-interface FolderOption {
-  id: string;
-  label: string;
-}
 
 const tree = ref<BookmarkNode[]>([]);
 const selectedPath = ref<string[]>([]);
@@ -101,24 +107,6 @@ const searchError = ref<string | null>(null);
 let searchTimer: number | undefined;
 
 const selectedFolderId = computed(() => selectedPath.value[selectedPath.value.length - 1] ?? null);
-
-const folderOptions = computed<FolderOption[]>(() => {
-  const result: FolderOption[] = [];
-
-  function visit(nodes: BookmarkNode[], prefix: string) {
-    for (const node of nodes) {
-      if (node.type !== 'folder') {
-        continue;
-      }
-      const label = prefix ? `${prefix} / ${node.title}` : node.title;
-      result.push({ id: node.id, label });
-      visit(node.children, label);
-    }
-  }
-
-  visit(tree.value, '');
-  return result;
-});
 
 async function loadTree() {
   loading.value = true;
@@ -199,7 +187,7 @@ async function handleSave(payload: BookmarkFormPayload) {
 }
 
 async function handleDelete(node: BookmarkNode) {
-  const message = node.type === 'folder' ? `确定删除文件夹“${node.title}”及其所有子节点吗？` : `确定删除书签“${node.title}”吗？`;
+  const message = node.type === 'folder' ? `确定删除文件夹"${node.title}"及其所有子节点吗？` : `确定删除书签"${node.title}"吗？`;
   if (!window.confirm(message)) {
     return;
   }
@@ -210,6 +198,16 @@ async function handleDelete(node: BookmarkNode) {
     await loadTree();
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '删除失败');
+  }
+}
+
+async function handleReorder(parentId: string | null, orderedIds: string[]) {
+  try {
+    await reorderBookmarks(parentId, orderedIds);
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '排序失败');
+    await loadTree();
   }
 }
 
