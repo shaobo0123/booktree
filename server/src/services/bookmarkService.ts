@@ -364,12 +364,31 @@ async function createImportedBranch(nodes: ImportedBookmarkNode[], parentId: str
   return imported;
 }
 
-export async function importBookmarkNodes(nodes: ImportedBookmarkNode[]) {
+function environmentTitleFromImport(sourceName?: string | null) {
+  const fallback = `导入环境 ${new Date().toLocaleString('zh-CN', { hour12: false })}`;
+  const name = sourceName?.replace(/\.[^.]+$/, '').trim();
+  return name || fallback;
+}
+
+export async function importBookmarkNodes(nodes: ImportedBookmarkNode[], sourceName?: string | null) {
   if (nodes.length === 0) {
     return 0;
   }
 
-  return createImportedBranch(nodes, null);
+  const environment = await prisma.bookmark.create({
+    data: {
+      title: environmentTitleFromImport(sourceName),
+      type: 'folder',
+      url: null,
+      faviconUrl: null,
+      faviconBase64: null,
+      faviconMime: null,
+      parentId: null,
+      sortOrder: await nextSortOrder(null)
+    }
+  });
+
+  return 1 + (await createImportedBranch(nodes, environment.id));
 }
 
 export async function reorderBookmarks(parentId: string | null, orderedIds: string[]): Promise<void> {

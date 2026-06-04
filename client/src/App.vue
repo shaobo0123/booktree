@@ -2,7 +2,7 @@
   <div class="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
     <Toolbar
       v-model:query="searchQuery"
-      @create-root="openCreate('folder', null, '新建根目录')"
+      @create-root="openCreate('folder', null, '新建环境', false)"
       @export="openExportModal"
       @import="handleImport"
     />
@@ -46,6 +46,7 @@
       @open="openBookmark"
       @reorder="handleReorder"
       @select="selectFolder"
+      @select-root="selectRoot"
     />
 
     <BookmarkFormModal
@@ -148,6 +149,10 @@ function selectFolder(node: BookmarkNode) {
   }
 }
 
+function selectRoot() {
+  selectedPath.value = [];
+}
+
 function openBookmark(node: BookmarkNode) {
   if (node.url) {
     void refreshBookmarkIcon(node.id)
@@ -233,7 +238,7 @@ async function handleImport(file: File) {
   try {
     const result = await importBookmarks(file);
     await loadTree();
-    window.alert(`已导入 ${result.imported} 个节点`);
+    window.alert(`已导入新环境，共 ${result.imported} 个节点`);
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '导入失败');
   }

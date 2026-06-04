@@ -114,7 +114,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
       return;
     }
 
-    const imported = await importBookmarkNodes(parseBookmarkHtml(html));
+    const imported = await importBookmarkNodes(parseBookmarkHtml(html), req.file?.originalname);
     res.status(201).json({ imported });
   } catch (error) {
     res.status(400).json({ error: errorMessage(error) });

@@ -1,11 +1,11 @@
 <template>
   <div
-    class="group relative my-1 flex min-h-[56px] items-center gap-3 rounded-lg px-3 py-2 transition-all duration-150"
+    class="group relative flex min-h-[72px] items-center gap-3 rounded-lg border px-3 py-2 transition-all duration-150"
     :class="selected
-      ? 'bg-emerald-50/80 shadow-[inset_3px_0_0_0_theme(colors.emerald.500)]'
-      : 'hover:bg-slate-50'"
+      ? 'border-emerald-300 bg-emerald-50/90 shadow-[0_8px_22px_-18px_rgba(15,23,42,0.5),inset_3px_0_0_0_theme(colors.emerald.500)]'
+      : 'border-slate-200 bg-slate-50/70 shadow-[0_8px_22px_-20px_rgba(15,23,42,0.45)] hover:border-slate-300 hover:bg-white hover:shadow-[0_12px_28px_-20px_rgba(15,23,42,0.55)]'"
   >
-    <div class="drag-handle flex h-8 w-3 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing">
+    <div class="drag-handle flex h-8 w-3 flex-shrink-0 cursor-grab items-center justify-center opacity-0 transition-opacity group-hover:opacity-60 active:cursor-grabbing">
       <GripVertical class="h-4 w-4 text-slate-400" :stroke-width="2.25" />
     </div>
 
