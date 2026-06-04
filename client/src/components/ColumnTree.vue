@@ -1,5 +1,5 @@
 <template>
-  <main class="column-scrollbar flex min-h-0 flex-1 overflow-x-auto bg-slate-50/50">
+  <main class="column-scrollbar flex min-h-0 flex-1 overflow-x-auto bg-slate-100/70">
     <div v-if="loading" class="flex w-full items-center justify-center">
       <div class="space-y-3 text-center">
         <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-500" />
@@ -39,8 +39,6 @@
         @reorder="(parentId, ids) => $emit('reorder', parentId, ids)"
         @select="$emit('select', $event)"
       />
-      <!-- column separator -->
-      <div v-for="column in columns" :key="'sep-' + column.key" class="w-px flex-shrink-0 bg-slate-100" />
     </template>
   </main>
 </template>

@@ -10,15 +10,7 @@
     </div>
 
     <button class="flex min-w-0 flex-1 items-center gap-3 text-left" type="button" @click="handlePrimaryClick">
-      <span
-        class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg transition-colors"
-        :class="node.type === 'folder'
-          ? 'bg-amber-100 text-amber-700 group-hover:bg-amber-200/70'
-          : 'bg-sky-100 text-sky-700 group-hover:bg-sky-200/70'"
-      >
-        <Folder v-if="node.type === 'folder'" class="h-4 w-4" :stroke-width="2.25" />
-        <LinkIcon v-else class="h-4 w-4" :stroke-width="2.25" />
-      </span>
+      <BookmarkNodeIcon :node="node" />
 
       <span class="min-w-0 flex-1">
         <span class="block truncate text-sm font-medium leading-snug" :class="selected ? 'text-emerald-900' : 'text-slate-800'">
@@ -48,7 +40,8 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronRight, ExternalLink, Folder, GripVertical, Link as LinkIcon, Pencil, Trash2 } from 'lucide-vue-next';
+import { ChevronRight, ExternalLink, GripVertical, Pencil, Trash2 } from 'lucide-vue-next';
+import BookmarkNodeIcon from './BookmarkNodeIcon.vue';
 import type { BookmarkNode } from '../types/bookmark';
 
 const props = defineProps<{

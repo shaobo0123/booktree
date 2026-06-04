@@ -6,6 +6,7 @@ import {
   exportBookmarkHtmlByRoot,
   getBookmarkTree,
   importBookmarkNodes,
+  refreshBookmarkIconInBackground,
   removeBookmark,
   reorderBookmarks,
   searchBookmarks,
@@ -22,7 +23,7 @@ const reorderSchema = z.object({
 });
 
 const createSchema = z.object({
-  title: z.string(),
+  title: z.string().optional(),
   type: z.enum(['folder', 'bookmark']),
   url: z.string().nullable().optional(),
   parent_id: z.string().nullable().optional(),
@@ -63,6 +64,15 @@ router.put('/reorder', async (req, res) => {
     res.json({ ok: true });
   } catch (error) {
     res.status(400).json({ error: errorMessage(error) });
+  }
+});
+
+router.post('/:id/refresh-icon', async (req, res) => {
+  try {
+    await refreshBookmarkIconInBackground(req.params.id);
+    res.status(202).json({ ok: true });
+  } catch (error) {
+    res.status(404).json({ error: errorMessage(error) });
   }
 });
 

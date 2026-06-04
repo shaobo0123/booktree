@@ -10,7 +10,7 @@
         </div>
 
         <div class="space-y-4 px-6 py-5">
-          <label class="form-label">
+          <label v-if="showContextFields" class="form-label">
             <span>类型</span>
             <select v-model="form.type" :disabled="Boolean(initial)" class="form-control">
               <option value="folder">文件夹</option>
@@ -20,7 +20,12 @@
 
           <label class="form-label">
             <span>标题</span>
-            <input v-model.trim="form.title" class="form-control" required placeholder="输入标题" />
+            <input
+              v-model.trim="form.title"
+              class="form-control"
+              :placeholder="form.type === 'bookmark' ? '留空则自动获取网页标题' : '输入标题'"
+              :required="form.type === 'folder'"
+            />
           </label>
 
           <label v-if="form.type === 'bookmark'" class="form-label">
@@ -28,7 +33,7 @@
             <input v-model.trim="form.url" class="form-control" placeholder="https://example.com" type="url" />
           </label>
 
-          <label class="form-label">
+          <label v-if="showContextFields" class="form-label">
             <span>父级</span>
             <FolderTreeSelect
               v-model="form.parent_id"
@@ -43,10 +48,6 @@
             />
           </label>
 
-          <label class="form-label">
-            <span>排序</span>
-            <input v-model.number="form.sort_order" class="form-control" min="0" step="1" type="number" />
-          </label>
         </div>
 
         <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
@@ -70,6 +71,7 @@ const props = defineProps<{
   tree: BookmarkNode[];
   defaultType: BookmarkType;
   defaultParentId: string | null;
+  showContextFields: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -82,15 +84,13 @@ interface BookmarkFormState {
   type: BookmarkType;
   url: string;
   parent_id: string | null;
-  sort_order: number;
 }
 
 const form = reactive<BookmarkFormState>({
   title: '',
   type: 'folder',
   url: '',
-  parent_id: null,
-  sort_order: 10
+  parent_id: null
 });
 
 watch(
@@ -100,7 +100,6 @@ watch(
     form.type = props.initial?.type ?? props.defaultType;
     form.url = props.initial?.url ?? '';
     form.parent_id = props.initial?.parent_id ?? props.defaultParentId;
-    form.sort_order = props.initial?.sort_order ?? 10;
   },
   { immediate: true }
 );
@@ -110,8 +109,7 @@ function handleSubmit() {
     title: form.title,
     type: form.type,
     url: form.type === 'bookmark' ? form.url : null,
-    parent_id: form.parent_id,
-    sort_order: Number(form.sort_order) || 0
+    parent_id: form.parent_id
   });
 }
 </script>

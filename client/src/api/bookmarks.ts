@@ -71,6 +71,12 @@ export function reorderBookmarks(parentId: string | null, orderedIds: string[]) 
   });
 }
 
+export function refreshBookmarkIcon(id: string) {
+  return request<{ ok: boolean }>(`/api/bookmarks/${id}/refresh-icon`, {
+    method: 'POST'
+  });
+}
+
 export function exportBookmarks(rootId?: string | null) {
   const query = rootId ? `?root_id=${encodeURIComponent(rootId)}` : '';
   window.location.href = `/api/bookmarks/export${query}`;

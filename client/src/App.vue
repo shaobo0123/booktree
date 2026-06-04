@@ -25,9 +25,7 @@
           type="button"
           @click="openBookmark(result)"
         >
-          <span class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
-            <LinkIcon class="h-4 w-4" :stroke-width="2.25" />
-          </span>
+          <BookmarkNodeIcon :node="result" />
           <span class="min-w-0 flex-1">
             <span class="block truncate text-[13px] font-medium text-slate-800">{{ result.title }}</span>
             <span class="block truncate text-xs text-slate-400">{{ result.url }}</span>
@@ -41,8 +39,8 @@
       :loading="loading"
       :selected-path="selectedPath"
       :tree="tree"
-      @create-bookmark="openCreate('bookmark', $event)"
-      @create-folder="openCreate('folder', $event)"
+      @create-bookmark="openCreateFromList('bookmark', $event)"
+      @create-folder="openCreateFromList('folder', $event)"
       @delete="handleDelete"
       @edit="openEdit"
       @open="openBookmark"
@@ -55,6 +53,7 @@
       :default-parent-id="modalDefaultParentId"
       :default-type="modalDefaultType"
       :initial="editingNode"
+      :show-context-fields="modalShowContextFields"
       :title="modalTitle"
       :tree="tree"
       @close="closeModal"
@@ -79,15 +78,16 @@ import {
   exportBookmarks,
   getBookmarkTree,
   importBookmarks,
+  refreshBookmarkIcon,
   reorderBookmarks,
   searchBookmarks,
   updateBookmark
 } from './api/bookmarks';
+import BookmarkNodeIcon from './components/BookmarkNodeIcon.vue';
 import BookmarkFormModal from './components/BookmarkFormModal.vue';
 import ColumnTree from './components/ColumnTree.vue';
 import ExportModal from './components/ExportModal.vue';
 import Toolbar from './components/Toolbar.vue';
-import { Link as LinkIcon } from 'lucide-vue-next';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from './types/bookmark';
 
 const tree = ref<BookmarkNode[]>([]);
@@ -98,6 +98,7 @@ const modalOpen = ref(false);
 const modalTitle = ref('新增');
 const modalDefaultType = ref<BookmarkType>('folder');
 const modalDefaultParentId = ref<string | null>(null);
+const modalShowContextFields = ref(true);
 const editingNode = ref<BookmarkNode | null>(null);
 const exportModalOpen = ref(false);
 const searchQuery = ref('');
@@ -105,6 +106,7 @@ const searchResults = ref<BookmarkNode[]>([]);
 const searchLoading = ref(false);
 const searchError = ref<string | null>(null);
 let searchTimer: number | undefined;
+let metadataRefreshTimer: number | undefined;
 
 const selectedFolderId = computed(() => selectedPath.value[selectedPath.value.length - 1] ?? null);
 
@@ -148,22 +150,36 @@ function selectFolder(node: BookmarkNode) {
 
 function openBookmark(node: BookmarkNode) {
   if (node.url) {
+    void refreshBookmarkIcon(node.id)
+      .then(() => {
+        window.clearTimeout(metadataRefreshTimer);
+        metadataRefreshTimer = window.setTimeout(loadTree, 3500);
+      })
+      .catch(() => {
+        // Icon refresh is best-effort and must not block opening the bookmark.
+      });
     window.open(node.url, '_blank', 'noopener,noreferrer');
   }
 }
 
-function openCreate(type: BookmarkType, parentId: string | null, title = type === 'folder' ? '新建文件夹' : '新建书签') {
+function openCreate(type: BookmarkType, parentId: string | null, title?: string, showContextFields = true) {
   editingNode.value = null;
   modalDefaultType.value = type;
   modalDefaultParentId.value = parentId;
-  modalTitle.value = title;
+  modalShowContextFields.value = showContextFields;
+  modalTitle.value = title ?? (type === 'folder' ? '新建文件夹' : '新建书签');
   modalOpen.value = true;
+}
+
+function openCreateFromList(type: BookmarkType, parentId: string | null) {
+  openCreate(type, parentId, undefined, false);
 }
 
 function openEdit(node: BookmarkNode) {
   editingNode.value = node;
   modalDefaultType.value = node.type;
   modalDefaultParentId.value = node.parent_id;
+  modalShowContextFields.value = true;
   modalTitle.value = '编辑书签';
   modalOpen.value = true;
 }
@@ -181,6 +197,8 @@ async function handleSave(payload: BookmarkFormPayload) {
     }
     closeModal();
     await loadTree();
+    window.clearTimeout(metadataRefreshTimer);
+    metadataRefreshTimer = window.setTimeout(loadTree, 3500);
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '保存失败');
   }

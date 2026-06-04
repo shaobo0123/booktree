@@ -1,6 +1,6 @@
 <template>
-  <section class="flex min-w-[280px] max-w-[380px] flex-1 flex-shrink-0 flex-col bg-white/80">
-    <div class="flex h-14 items-center gap-2.5 border-b border-slate-100 px-4">
+  <section class="flex min-w-[280px] max-w-[380px] flex-1 flex-shrink-0 flex-col border-r border-slate-200/90 bg-white shadow-[inset_-1px_0_0_rgba(15,23,42,0.04)] last:border-r-0">
+    <div class="flex h-14 items-center gap-2.5 border-b border-slate-200/80 bg-slate-50/70 px-4">
       <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
         <FolderOpen class="h-4 w-4" :stroke-width="2.25" />
       </span>
