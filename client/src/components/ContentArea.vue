@@ -90,41 +90,13 @@
           <!-- List View -->
           <draggable v-if="viewMode === 'list'" v-model="localFolders" item-key="id" class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="onFolderDragEnd">
             <template #item="{ element: f }">
-              <div class="flex items-center gap-3 h-14 px-4 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group" draggable="true" @click="$emit('select-folder', f.id)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: f, x: e.clientX, y: e.clientY })" @dragstart="(e) => { e.dataTransfer!.setData('text/plain', f.id); e.dataTransfer!.effectAllowed = 'move'; }">
-                <span class="flex items-center justify-center w-5 h-5 flex-shrink-0 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 transition-opacity group-hover:opacity-100 drag-handle">
-                  <GripVertical class="h-5 w-5" :stroke-width="2" />
-                </span>
-                <Folder class="h-6 w-6 flex-shrink-0 text-amber-500" :stroke-width="2" />
-                <div class="min-w-0 flex-1">
-                  <span class="block truncate text-sm font-semibold text-slate-800">{{ f.title }}</span>
-                  <span class="block truncate text-[13px] text-slate-400">{{ folderStats(f) }}</span>
-                </div>
-                <ChevronRight class="h-5 w-5 flex-shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5" :stroke-width="2" />
-                <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-1/2 -translate-y-1/2 bg-white p-0.5 rounded-md border border-slate-200 shadow-sm">
-                  <button class="inline-flex items-center justify-center h-[28px] w-[28px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', f)"><Pencil class="h-4 w-4" :stroke-width="2" /></button>
-                  <button class="inline-flex items-center justify-center h-[28px] w-[28px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', f)"><Trash2 class="h-4 w-4" :stroke-width="2" /></button>
-                </div>
-              </div>
+              <ListItem :node="f" :subtitle="folderStats(f)" @click="$emit('select-folder', f.id)" @contextmenu="(p) => $emit('contextmenu', p)" />
             </template>
           </draggable>
 
           <!-- Grid View -->
           <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
-            <template v-for="f in orderedFolders" :key="f.id">
-                <div class="relative rounded-xl border border-slate-200 bg-white transition-all hover:border-slate-300 hover:shadow-md group" @click="$emit('select-folder', f.id)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: f, x: e.clientX, y: e.clientY })">
-                  <div class="absolute right-1.5 top-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-0.5 rounded-md border border-slate-200 shadow-sm z-[1]">
-                    <button class="inline-flex items-center justify-center h-6 w-6 rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', f)"><Pencil class="h-3 w-3" :stroke-width="2.25" /></button>
-                    <button class="inline-flex items-center justify-center h-6 w-6 rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', f)"><Trash2 class="h-3 w-3" :stroke-width="2.25" /></button>
-                  </div>
-                  <div class="flex flex-col items-center gap-2 px-3 py-4 text-center cursor-pointer">
-                    <BookmarkNodeIcon :node="f" size="lg" />
-                    <div class="w-full min-w-0 overflow-hidden">
-                      <span class="block truncate text-[13px] font-medium text-slate-800">{{ f.title }}</span>
-                      <span class="mt-0.5 block truncate text-[11px] text-slate-400">{{ folderStats(f) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </template>
+            <GridCard v-for="f in orderedFolders" :key="f.id" :node="f" :subtitle="folderStats(f)" @click="$emit('select-folder', f.id)" @contextmenu="(p) => $emit('contextmenu', p)" />
           </div>
         </section>
 
@@ -138,42 +110,13 @@
           <!-- List View -->
           <draggable v-if="viewMode === 'list'" v-model="localBookmarks" item-key="id" class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="onBookmarkDragEnd">
             <template #item="{ element: b }">
-              <div class="flex items-center gap-3 h-12 px-4 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group" draggable="true" @click="$emit('open-bookmark', b)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: b, x: e.clientX, y: e.clientY })" @dragstart="(e) => { e.dataTransfer!.setData('text/plain', b.id); e.dataTransfer!.effectAllowed = 'move'; }">
-                <span class="flex items-center justify-center w-5 h-5 flex-shrink-0 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 transition-opacity group-hover:opacity-100 drag-handle">
-                  <GripVertical class="h-5 w-5" :stroke-width="2" />
-                </span>
-                <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded">
-                  <BookmarkNodeIcon :node="b" size="sm" />
-                </span>
-                <div class="min-w-0 flex-1">
-                  <span class="block truncate text-sm font-medium text-slate-800">{{ b.title }}</span>
-                  <span class="block truncate text-[13px] text-slate-400">{{ cleanUrl(b.url || '') }}</span>
-                </div>
-                <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-1/2 -translate-y-1/2 bg-white p-0.5 rounded-md border border-slate-200 shadow-sm">
-                  <button class="inline-flex items-center justify-center h-[28px] w-[28px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', b)"><Pencil class="h-4 w-4" :stroke-width="2" /></button>
-                  <button class="inline-flex items-center justify-center h-[28px] w-[28px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', b)"><Trash2 class="h-4 w-4" :stroke-width="2" /></button>
-                </div>
-              </div>
+              <ListItem :node="b" :subtitle="cleanUrl(b.url || '')" @click="$emit('open-bookmark', b)" @contextmenu="(p) => $emit('contextmenu', p)" />
             </template>
           </draggable>
 
           <!-- Grid View -->
           <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-            <template v-for="b in orderedBookmarks" :key="b.id">
-                <div class="relative rounded-xl border border-slate-200 bg-white transition-all hover:border-slate-300 hover:shadow-md group" @click="$emit('open-bookmark', b)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: b, x: e.clientX, y: e.clientY })">
-                  <div class="absolute right-1.5 top-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-0.5 rounded-md border border-slate-200 shadow-sm z-[1]">
-                    <button class="inline-flex items-center justify-center h-6 w-6 rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', b)"><Pencil class="h-3 w-3" :stroke-width="2.25" /></button>
-                    <button class="inline-flex items-center justify-center h-6 w-6 rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', b)"><Trash2 class="h-3 w-3" :stroke-width="2.25" /></button>
-                  </div>
-                  <div class="flex flex-col items-center gap-2 px-3 py-4 text-center cursor-pointer">
-                    <BookmarkNodeIcon :node="b" size="lg" />
-                    <div class="w-full min-w-0 overflow-hidden">
-                      <span class="block truncate text-[13px] font-medium text-slate-800">{{ b.title }}</span>
-                      <span v-if="b.url" class="mt-0.5 block truncate text-[11px] text-slate-400">{{ cleanUrl(b.url) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </template>
+            <GridCard v-for="b in orderedBookmarks" :key="b.id" :node="b" :subtitle="cleanUrl(b.url || '')" @click="$emit('open-bookmark', b)" @contextmenu="(p) => $emit('contextmenu', p)" />
           </div>
         </section>
       </template>
@@ -184,9 +127,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
-import { AlignJustify, ChevronRight, Folder, FolderPlus, GripVertical, Inbox, LayoutGrid, LibraryBig, Pencil, Plus, Trash2 } from 'lucide-vue-next';
+import { AlignJustify, FolderPlus, Inbox, LayoutGrid, LibraryBig, Plus } from 'lucide-vue-next';
 import Breadcrumb from './Breadcrumb.vue';
-import BookmarkNodeIcon from './BookmarkNodeIcon.vue';
+import ListItem from './ListItem.vue';
+import GridCard from './GridCard.vue';
 import { discoverFaviconUrl } from '../utils/favicon';
 import { saveFaviconUrl } from '../api/bookmarks';
 import type { BookmarkNode, ViewMode } from '../types/bookmark';

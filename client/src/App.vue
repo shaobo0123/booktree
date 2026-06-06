@@ -46,7 +46,6 @@
       :initial="editingNode"
       :show-context-fields="modalShowContextFields"
       :title="modalTitle"
-      :tree="tree"
       @close="closeModal"
       @delete="handleDeleteFromModal"
       @save="handleSave"
@@ -100,7 +99,6 @@ import {
   Copy,
   ExternalLink,
   FolderInput,
-  Link2,
   Pencil,
   Trash2,
   X
@@ -326,22 +324,13 @@ const contextMenuItems = computed<MenuItem[]>(() => {
 
   const items: MenuItem[] = [
     {
-      label: '重命名',
+      label: '编辑',
       icon: Pencil,
-      action: () => {
-        if (node) openEdit(node);
-      }
+      action: () => { if (node) openEdit(node); }
     }
   ];
 
   if (node.type === 'bookmark') {
-    items.push({
-      label: '编辑 URL',
-      icon: Link2,
-      action: () => {
-        if (node) openEdit(node);
-      }
-    });
     items.push({
       label: '打开链接',
       icon: ExternalLink,

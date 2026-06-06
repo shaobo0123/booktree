@@ -33,21 +33,6 @@
             <input v-model.trim="form.url" class="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:shadow-[0_0_0_3px_rgba(16,185,129,0.1)] disabled:bg-slate-50 disabled:text-slate-500" placeholder="https://example.com" type="url" />
           </label>
 
-          <label v-if="showContextFields" class="grid gap-1.5 text-sm font-medium text-slate-700">
-            <span>父级</span>
-            <FolderTreeSelect
-              v-model="form.parent_id"
-              :block-folder-id="initial?.type === 'folder' ? initial.id : null"
-              :tree="tree"
-              empty-text="暂无可选文件夹"
-              list-height="256px"
-              root-description="顶层"
-              root-label="根级"
-              searchable
-              variant="dropdown"
-            />
-          </label>
-
         </div>
 
         <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-6 py-4">
@@ -69,13 +54,11 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
 import { Trash2, X } from 'lucide-vue-next';
-import FolderTreeSelect from './FolderTreeSelect.vue';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from '../types/bookmark';
 
 const props = defineProps<{
   title: string;
   initial: BookmarkNode | null;
-  tree: BookmarkNode[];
   defaultType: BookmarkType;
   defaultParentId: string | null;
   showContextFields: boolean;
@@ -91,23 +74,20 @@ interface BookmarkFormState {
   title: string;
   type: BookmarkType;
   url: string;
-  parent_id: string | null;
 }
 
 const form = reactive<BookmarkFormState>({
   title: '',
   type: 'folder',
-  url: '',
-  parent_id: null
+  url: ''
 });
 
 watch(
-  () => [props.initial, props.defaultType, props.defaultParentId] as const,
+  () => [props.initial, props.defaultType] as const,
   () => {
     form.title = props.initial?.title ?? '';
     form.type = props.initial?.type ?? props.defaultType;
     form.url = props.initial?.url ?? '';
-    form.parent_id = props.initial?.parent_id ?? props.defaultParentId;
   },
   { immediate: true }
 );
@@ -117,7 +97,7 @@ function handleSubmit() {
     title: form.title,
     type: form.type,
     url: form.type === 'bookmark' ? form.url : null,
-    parent_id: form.parent_id
+    parent_id: props.initial?.parent_id ?? props.defaultParentId
   });
 }
 </script>
