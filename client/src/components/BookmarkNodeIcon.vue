@@ -24,7 +24,7 @@ const firstLetter = computed(() => (props.node.title || '?')[0].toUpperCase());
 
 const containerClass = computed(() => {
   const s = props.size;
-  if (props.node.type === 'bookmark') return s === 'lg' ? 'h-10 w-10 bg-slate-100' : 'h-5 w-5 bg-slate-100';
+  if (props.node.type === 'bookmark') return s === 'lg' ? 'h-10 w-10 bg-slate-100' : 'h-6 w-6 bg-slate-100';
   return s === 'lg' ? 'h-12 w-12 bg-amber-50 text-amber-600' : 'h-8 w-8 bg-amber-50 text-amber-600';
 });
 

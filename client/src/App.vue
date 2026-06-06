@@ -136,9 +136,17 @@ const searchOpen = ref(false);
 
 // Sync URL ← selectedFolderId
 watch(selectedFolderId, (id) => {
-  const target = id ? `/folder/${id}` : '/';
+  if (!id) { if (route.path !== '/') router.replace('/'); return; }
+  const node = findNodeInTree(tree.value, id);
+  const title = node ? encodeURIComponent(node.title) : '';
+  const target = title ? `/folder/${id}/${title}` : `/folder/${id}`;
   if (route.path !== target) router.replace(target);
 });
+
+function findNodeInTree(nodes: BookmarkNode[], id: string): BookmarkNode | null {
+  for (const n of nodes) { if (n.id === id) return n; const f = findNodeInTree(n.children, id); if (f) return f; }
+  return null;
+}
 
 // Sync selectedFolderId ← URL (back/forward navigation)
 watch(() => route.params.id, (id) => {

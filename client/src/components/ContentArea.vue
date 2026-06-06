@@ -81,8 +81,8 @@
 
       <template v-else>
         <!-- ========== FOLDERS SECTION ========== -->
-        <section v-if="folders.length > 0" class="mb-5">
-          <div class="mb-2 flex items-center gap-2">
+        <section v-if="folders.length > 0" class="mb-8">
+          <div class="mb-3 flex items-center gap-2">
             <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">文件夹</span>
             <span class="text-[11px] text-slate-300">{{ folders.length }}</span>
           </div>
@@ -90,19 +90,19 @@
           <!-- List View -->
           <draggable v-if="viewMode === 'list'" v-model="localFolders" item-key="id" class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="onFolderDragEnd">
             <template #item="{ element: f }">
-              <div class="flex items-center gap-2.5 h-11 px-3 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group" draggable="true" @click="$emit('select-folder', f.id)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: f, x: e.clientX, y: e.clientY })" @dragstart="(e) => { e.dataTransfer!.setData('text/plain', f.id); e.dataTransfer!.effectAllowed = 'move'; }">
+              <div class="flex items-center gap-3 h-14 px-4 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group" draggable="true" @click="$emit('select-folder', f.id)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: f, x: e.clientX, y: e.clientY })" @dragstart="(e) => { e.dataTransfer!.setData('text/plain', f.id); e.dataTransfer!.effectAllowed = 'move'; }">
                 <span class="flex items-center justify-center w-5 h-5 flex-shrink-0 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 transition-opacity group-hover:opacity-100 drag-handle">
-                  <GripVertical class="h-4 w-4" :stroke-width="2" />
+                  <GripVertical class="h-5 w-5" :stroke-width="2" />
                 </span>
-                <Folder class="h-5 w-5 flex-shrink-0 text-amber-500" :stroke-width="2" />
+                <Folder class="h-6 w-6 flex-shrink-0 text-amber-500" :stroke-width="2" />
                 <div class="min-w-0 flex-1">
-                  <span class="block truncate text-[13px] font-semibold text-slate-800">{{ f.title }}</span>
-                  <span class="block truncate text-[12px] text-slate-400">{{ folderStats(f) }}</span>
+                  <span class="block truncate text-sm font-semibold text-slate-800">{{ f.title }}</span>
+                  <span class="block truncate text-[13px] text-slate-400">{{ folderStats(f) }}</span>
                 </div>
-                <ChevronRight class="h-4 w-4 flex-shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5" :stroke-width="2" />
+                <ChevronRight class="h-5 w-5 flex-shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5" :stroke-width="2" />
                 <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-1/2 -translate-y-1/2 bg-white p-0.5 rounded-md border border-slate-200 shadow-sm">
-                  <button class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', f)"><Pencil class="h-3.5 w-3.5" :stroke-width="2" /></button>
-                  <button class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', f)"><Trash2 class="h-3.5 w-3.5" :stroke-width="2" /></button>
+                  <button class="inline-flex items-center justify-center h-[28px] w-[28px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', f)"><Pencil class="h-4 w-4" :stroke-width="2" /></button>
+                  <button class="inline-flex items-center justify-center h-[28px] w-[28px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', f)"><Trash2 class="h-4 w-4" :stroke-width="2" /></button>
                 </div>
               </div>
             </template>
@@ -130,7 +130,7 @@
 
         <!-- ========== BOOKMARKS SECTION ========== -->
         <section v-if="bookmarks.length > 0">
-          <div class="mb-2 flex items-center gap-2">
+          <div class="mb-3 flex items-center gap-2">
             <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">书签</span>
             <span class="text-[11px] text-slate-300">{{ bookmarks.length }}</span>
           </div>
@@ -138,20 +138,20 @@
           <!-- List View -->
           <draggable v-if="viewMode === 'list'" v-model="localBookmarks" item-key="id" class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="onBookmarkDragEnd">
             <template #item="{ element: b }">
-              <div class="flex items-center gap-2.5 h-10 px-3 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group" draggable="true" @click="$emit('open-bookmark', b)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: b, x: e.clientX, y: e.clientY })" @dragstart="(e) => { e.dataTransfer!.setData('text/plain', b.id); e.dataTransfer!.effectAllowed = 'move'; }">
+              <div class="flex items-center gap-3 h-12 px-4 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group" draggable="true" @click="$emit('open-bookmark', b)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: b, x: e.clientX, y: e.clientY })" @dragstart="(e) => { e.dataTransfer!.setData('text/plain', b.id); e.dataTransfer!.effectAllowed = 'move'; }">
                 <span class="flex items-center justify-center w-5 h-5 flex-shrink-0 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 transition-opacity group-hover:opacity-100 drag-handle">
-                  <GripVertical class="h-4 w-4" :stroke-width="2" />
+                  <GripVertical class="h-5 w-5" :stroke-width="2" />
                 </span>
-                <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded">
+                <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded">
                   <BookmarkNodeIcon :node="b" size="sm" />
                 </span>
                 <div class="min-w-0 flex-1">
-                  <span class="block truncate text-[13px] font-medium text-slate-800">{{ b.title }}</span>
-                  <span class="block truncate text-[12px] text-slate-400">{{ cleanUrl(b.url || '') }}</span>
+                  <span class="block truncate text-sm font-medium text-slate-800">{{ b.title }}</span>
+                  <span class="block truncate text-[13px] text-slate-400">{{ cleanUrl(b.url || '') }}</span>
                 </div>
                 <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-1/2 -translate-y-1/2 bg-white p-0.5 rounded-md border border-slate-200 shadow-sm">
-                  <button class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', b)"><Pencil class="h-3.5 w-3.5" :stroke-width="2" /></button>
-                  <button class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', b)"><Trash2 class="h-3.5 w-3.5" :stroke-width="2" /></button>
+                  <button class="inline-flex items-center justify-center h-[28px] w-[28px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', b)"><Pencil class="h-4 w-4" :stroke-width="2" /></button>
+                  <button class="inline-flex items-center justify-center h-[28px] w-[28px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', b)"><Trash2 class="h-4 w-4" :stroke-width="2" /></button>
                 </div>
               </div>
             </template>
