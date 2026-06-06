@@ -50,9 +50,16 @@
 
         </div>
 
-        <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-          <button class="btn-ghost" type="button" @click="$emit('close')">取消</button>
-          <button class="btn-primary" type="submit">保存</button>
+        <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-6 py-4">
+          <button v-if="initial" class="btn-delete" type="button" @click="$emit('delete', initial)">
+            <Trash2 class="h-4 w-4" />
+            删除
+          </button>
+          <span v-else />
+          <div class="flex gap-2">
+            <button class="btn-ghost" type="button" @click="$emit('close')">取消</button>
+            <button class="btn-primary" type="submit">保存</button>
+          </div>
         </div>
       </form>
     </div>
@@ -61,7 +68,7 @@
 
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
-import { X } from 'lucide-vue-next';
+import { Trash2, X } from 'lucide-vue-next';
 import FolderTreeSelect from './FolderTreeSelect.vue';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from '../types/bookmark';
 
@@ -77,6 +84,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: [];
   save: [payload: BookmarkFormPayload];
+  delete: [node: BookmarkNode];
 }>();
 
 interface BookmarkFormState {
@@ -153,5 +161,9 @@ function handleSubmit() {
 
 .btn-primary {
   @apply rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 active:bg-emerald-700;
+}
+
+.btn-delete {
+  @apply inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50 hover:border-rose-300;
 }
 </style>

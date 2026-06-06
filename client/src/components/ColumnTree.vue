@@ -38,6 +38,7 @@
               @open="emit('open', $event)"
               @edit="emit('edit', $event)"
               @delete="emit('delete', $event)"
+              @reorder="(pId: string, ids: string[]) => emit('reorder', pId, ids)"
               @create-bookmark="emit('create-bookmark', $event)"
               @create-folder="emit('create-folder', $event)"
             />
@@ -64,9 +65,9 @@ const emit = defineEmits<{
   open: [node: BookmarkNode];
   edit: [node: BookmarkNode];
   delete: [node: BookmarkNode];
+  reorder: [parentId: string | null, orderedIds: string[]];
   'create-folder': [data: { parentId: string; title: string }];
   'create-bookmark': [data: { parentId: string; title: string; url: string }];
-  reorder: [parentId: string | null, orderedIds: string[]];
 }>();
 
 const expandedIds = ref<Set<string>>(new Set());
@@ -90,20 +91,36 @@ const rootNodes = computed(() => {
 
 <style scoped>
 .mind-canvas {
-  background-color: #f8fafc;
-  background-image: radial-gradient(circle, #e2e8f0 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-color: #fafbfc;
+  background-image:
+    radial-gradient(circle, #e5e7eb 1.2px, transparent 1.2px);
+  background-size: 22px 22px;
 }
 
 .mind-canvas-inner {
-  @apply inline-block min-w-full min-h-full p-8;
+  display: inline-block;
+  min-width: 100%;
+  min-height: 100%;
+  padding: 36px 44px;
 }
 
 .mind-root-list {
-  @apply flex flex-col gap-6;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .mind-root-item {
-  @apply relative;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .mind-canvas-inner {
+    padding: 20px 16px;
+  }
+
+  .mind-root-list {
+    gap: 20px;
+  }
 }
 </style>

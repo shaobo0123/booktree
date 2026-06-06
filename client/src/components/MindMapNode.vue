@@ -1,15 +1,27 @@
 <template>
-  <div class="mind-node">
+  <div class="mind-node" :style="{ '--accent': accentColor }">
     <!-- Node Card -->
     <div
-      class="mind-card group"
+      class="mind-card"
       :class="[
         node.type === 'folder' ? 'mind-card-folder' : 'mind-card-bookmark',
         isFolderExpanded ? 'mind-card-expanded' : ''
       ]"
       @click="handleClick"
+      @contextmenu.prevent="showMenu"
+      @pointerdown="onPointerDown"
+      @pointerup="onPointerUp"
+      @pointerleave="onPointerUp"
+      @pointercancel="onPointerUp"
     >
-      <BookmarkNodeIcon :node="node" />
+      <!-- Drag handle: inside left edge -->
+      <span class="node-drag-handle" title="拖拽排序">
+        <GripVertical class="h-3.5 w-3.5" :stroke-width="2" />
+      </span>
+
+      <span class="mind-card-icon">
+        <BookmarkNodeIcon :node="node" />
+      </span>
       <div class="mind-card-text">
         <span class="mind-card-title">{{ node.title }}</span>
         <span v-if="node.type === 'bookmark' && node.url" class="mind-card-url">{{ cleanUrl(node.url) }}</span>
@@ -24,96 +36,130 @@
         :class="isFolderExpanded ? 'mind-card-arrow-open' : ''"
         :stroke-width="2.25"
       />
-
-      <!-- Hover actions (only edit/delete) -->
-      <div class="mind-card-actions">
-        <button class="node-act" title="编辑" @click.stop="$emit('edit', node)">
-          <Pencil class="h-3 w-3" :stroke-width="2" />
-        </button>
-        <button class="node-act node-act-danger" title="删除" @click.stop="$emit('delete', node)">
-          <Trash2 class="h-3 w-3" :stroke-width="2" />
-        </button>
-      </div>
     </div>
 
-    <!-- Children branch (horizontal expansion) -->
-    <div v-if="isFolderExpanded || addingType" class="mind-branch">
-      <div v-if="childNodes.length > 0" class="mind-children">
-        <div v-for="child in childNodes" :key="child.id" class="mind-child">
-          <MindMapNode
-            :node="child"
-            :expanded-ids="expandedIds"
-            @toggle="$emit('toggle', $event)"
-            @open="$emit('open', $event)"
-            @edit="$emit('edit', $event)"
-            @delete="$emit('delete', $event)"
-            @create-bookmark="$emit('create-bookmark', $event)"
-            @create-folder="$emit('create-folder', $event)"
-          />
-        </div>
+    <!-- Context menu -->
+    <Teleport to="body">
+      <div
+        v-if="menuVisible"
+        class="mind-context-menu"
+        :style="{ left: menuX + 'px', top: menuY + 'px' }"
+        @click.stop
+      >
+        <button class="ctx-item" @click="menuEdit">
+          <Pencil class="h-3.5 w-3.5" :stroke-width="2" />
+          编辑
+        </button>
+        <button class="ctx-item ctx-item-danger" @click="menuDelete">
+          <Trash2 class="h-3.5 w-3.5" :stroke-width="2" />
+          删除
+        </button>
       </div>
+    </Teleport>
 
-      <!-- Inline add form at bottom -->
-      <div v-if="addingType" class="mind-child">
-        <div class="mind-inline-card" @click.stop>
-          <BookmarkNodeIcon :node="addingIconNode" />
-          <div class="mind-inline-fields">
-            <input
-              ref="titleInputRef"
-              v-model="newTitle"
-              class="mind-inline-input"
-              :placeholder="addingType === 'folder' ? '文件夹名称' : '标题'"
-              @keydown.enter="onTitleEnter"
-              @keydown.escape="cancelAdd"
-            />
-            <input
-              v-if="addingType === 'bookmark'"
-              ref="urlInputRef"
-              v-model="newUrl"
-              class="mind-inline-input"
-              placeholder="https://..."
-              @keydown.enter="submitAdd"
-              @keydown.escape="cancelAdd"
-            />
+    <!-- Backdrop to dismiss menu -->
+    <Teleport to="body">
+      <div v-if="menuVisible" class="mind-menu-backdrop" @click="menuVisible = false" @contextmenu.prevent="menuVisible = false" />
+    </Teleport>
+
+    <!-- Children branch -->
+    <Transition name="mind-slide">
+      <div v-if="isFolderExpanded || addingType" class="mind-branch">
+        <draggable
+          v-if="localChildren.length > 0"
+          v-model="localChildren"
+          item-key="id"
+          class="mind-children"
+          ghost-class="mind-drag-ghost"
+          handle=".node-drag-handle"
+          :animation="180"
+          @change="onReorder"
+        >
+          <template #item="{ element: child }">
+            <div class="mind-child">
+              <MindMapNode
+                :node="child"
+                :expanded-ids="expandedIds"
+                :depth="depth + 1"
+                @toggle="$emit('toggle', $event)"
+                @open="$emit('open', $event)"
+                @edit="$emit('edit', $event)"
+                @delete="(n: BookmarkNode) => $emit('delete', n)"
+                @reorder="(pId: string, ids: string[]) => $emit('reorder', pId, ids)"
+                @create-bookmark="$emit('create-bookmark', $event)"
+                @create-folder="$emit('create-folder', $event)"
+              />
+            </div>
+          </template>
+        </draggable>
+
+        <!-- Inline add form at bottom -->
+        <div v-if="addingType" class="mind-child">
+          <div class="mind-inline-card" @click.stop>
+            <BookmarkNodeIcon :node="addingIconNode" />
+            <div class="mind-inline-fields">
+              <input
+                ref="titleInputRef"
+                v-model="newTitle"
+                class="mind-inline-input"
+                :placeholder="addingType === 'folder' ? '文件夹名称' : '标题'"
+                @keydown.enter="onTitleEnter"
+                @keydown.escape="cancelAdd"
+              />
+              <input
+                v-if="addingType === 'bookmark'"
+                ref="urlInputRef"
+                v-model="newUrl"
+                class="mind-inline-input"
+                placeholder="https://..."
+                @keydown.enter="submitAdd"
+                @keydown.escape="cancelAdd"
+              />
+            </div>
+            <button class="node-act" title="确认" @click.stop="submitAdd">
+              <Check class="h-3.5 w-3.5 text-emerald-600" :stroke-width="2" />
+            </button>
+            <button class="node-act" title="取消" @click.stop="cancelAdd">
+              <X class="h-3.5 w-3.5 text-slate-400" :stroke-width="2" />
+            </button>
           </div>
-          <button class="node-act" title="确认" @click.stop="submitAdd">
-            <Check class="h-3.5 w-3.5 text-emerald-600" :stroke-width="2" />
+        </div>
+
+        <!-- Add buttons at bottom of list -->
+        <div v-if="!addingType" class="mind-add-bar">
+          <button class="add-btn" @click.stop="startAdd('folder')">
+            <FolderPlus class="h-3 w-3" :stroke-width="2" /> 文件夹
           </button>
-          <button class="node-act" title="取消" @click.stop="cancelAdd">
-            <X class="h-3.5 w-3.5 text-slate-400" :stroke-width="2" />
+          <button class="add-btn" @click.stop="startAdd('bookmark')">
+            <Plus class="h-3 w-3" :stroke-width="2" /> 书签
           </button>
         </div>
       </div>
-
-      <!-- Add buttons at bottom of list -->
-      <div v-if="!addingType" class="mind-add-bar">
-        <button class="add-btn" @click.stop="startAdd('folder')">
-          <FolderPlus class="h-3 w-3" :stroke-width="2" /> 文件夹
-        </button>
-        <button class="add-btn" @click.stop="startAdd('bookmark')">
-          <Plus class="h-3 w-3" :stroke-width="2" /> 书签
-        </button>
-      </div>
-    </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue';
-import { Check, ChevronRight, FolderPlus, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import { computed, nextTick, ref, watch } from 'vue';
+import { Check, ChevronRight, FolderPlus, GripVertical, Pencil, Plus, Trash2, X } from 'lucide-vue-next';
+import draggable from 'vuedraggable';
 import BookmarkNodeIcon from './BookmarkNodeIcon.vue';
 import type { BookmarkNode, BookmarkType } from '../types/bookmark';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   node: BookmarkNode;
   expandedIds: Set<string>;
-}>();
+  depth?: number;
+}>(), {
+  depth: 0
+});
 
 const emit = defineEmits<{
   toggle: [id: string];
   open: [node: BookmarkNode];
   edit: [node: BookmarkNode];
   delete: [node: BookmarkNode];
+  reorder: [parentId: string, orderedIds: string[]];
   'create-bookmark': [data: { parentId: string; title: string; url: string }];
   'create-folder': [data: { parentId: string; title: string }];
 }>();
@@ -123,10 +169,20 @@ const isFolderExpanded = computed(() => props.node.type === 'folder' && isExpand
 
 const childNodes = computed(() => {
   if (props.node.type !== 'folder') return [];
-  const folders = props.node.children.filter((n) => n.type === 'folder');
-  const bookmarks = props.node.children.filter((n) => n.type === 'bookmark');
-  return [...folders, ...bookmarks];
+  return [...props.node.children].sort((a, b) => a.sort_order - b.sort_order);
 });
+
+// Local mutable copy for vuedraggable v-model
+const localChildren = ref<BookmarkNode[]>([...childNodes.value]);
+let ignoreSync = false;
+
+watch(childNodes, (val) => {
+  if (ignoreSync) return;
+  localChildren.value = [...val];
+}, { deep: true });
+
+const ACCENT_COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#f43f5e'];
+const accentColor = computed(() => ACCENT_COLORS[Math.min(props.depth, ACCENT_COLORS.length - 1)]);
 
 const totalBookmarks = computed(() => countBookmarks(props.node));
 const subFolderCount = computed(() => props.node.children.filter((n) => n.type === 'folder').length);
@@ -154,7 +210,6 @@ const addingIconNode = computed<BookmarkNode>(() => ({
 }));
 
 function startAdd(type: BookmarkType) {
-  // Auto-expand folder if not expanded
   if (!isExpanded.value) {
     emit('toggle', props.node.id);
   }
@@ -170,7 +225,6 @@ function onTitleEnter() {
   if (addingType.value === 'folder') {
     submitAdd();
   } else {
-    // For bookmarks, move focus to URL field
     urlInputRef.value?.focus();
   }
 }
@@ -198,12 +252,58 @@ function cancelAdd() {
   addingType.value = null;
 }
 
+// --- Drag reorder ---
+function onReorder() {
+  ignoreSync = true;
+  emit('reorder', props.node.id, localChildren.value.map((n) => n.id));
+  nextTick(() => { ignoreSync = false; });
+}
+
 // --- Card click ---
 function handleClick() {
   if (props.node.type === 'folder') {
     emit('toggle', props.node.id);
   } else {
     emit('open', props.node);
+  }
+}
+
+// --- Context menu ---
+const menuVisible = ref(false);
+const menuX = ref(0);
+const menuY = ref(0);
+
+function showMenu(e: MouseEvent) {
+  menuX.value = e.clientX;
+  menuY.value = e.clientY;
+  menuVisible.value = true;
+}
+
+function menuEdit() {
+  menuVisible.value = false;
+  emit('edit', props.node);
+}
+
+function menuDelete() {
+  menuVisible.value = false;
+  emit('delete', props.node);
+}
+
+// --- Long press (mobile) ---
+let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+let longPressPos: { x: number; y: number } = { x: 0, y: 0 };
+
+function onPointerDown(e: PointerEvent) {
+  longPressPos = { x: e.clientX, y: e.clientY };
+  longPressTimer = setTimeout(() => {
+    showMenu(new MouseEvent('contextmenu', { clientX: longPressPos.x, clientY: longPressPos.y }));
+  }, 500);
+}
+
+function onPointerUp() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
   }
 }
 
@@ -222,7 +322,7 @@ function cleanUrl(url: string): string {
 </script>
 
 <style scoped>
-/* ==================== Node: horizontal flex ==================== */
+/* ==================== Node: horizontal layout ==================== */
 .mind-node {
   display: flex;
   align-items: flex-start;
@@ -230,83 +330,184 @@ function cleanUrl(url: string): string {
 
 /* ==================== Card ==================== */
 .mind-card {
-  @apply relative flex flex-shrink-0 items-center gap-2.5 rounded-xl border border-slate-200/80 bg-white pl-3 pr-2 transition-all;
-  @apply hover:border-slate-300 hover:shadow-sm;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 24px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  border-left: 4px solid #f1f5f9;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
   cursor: pointer;
+  transition: border-left-color 0.25s ease, box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  width: fit-content;
+  min-width: 240px;
+  max-width: 420px;
+  flex-shrink: 0;
+}
+
+.mind-card:hover {
+  border-color: #e2e8f0;
+  border-left-color: var(--accent, #10b981);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.mind-card-expanded {
+  border-left-color: var(--accent, #10b981);
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.06);
 }
 
 .mind-card-folder {
-  @apply py-2.5;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 .mind-card-bookmark {
-  @apply py-2;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
-/* Horizontal connector from card to children branch */
+/* Curved connector: card → branch */
 .mind-card-expanded::after {
   content: '';
   position: absolute;
   left: 100%;
-  top: 50%;
-  width: 24px;
-  height: 0;
-  border-top: 2px solid #cbd5e1;
-  transform: translateY(-1px);
+  top: 28px;
+  width: 10px;
+  height: 14px;
+  border-top: 1.5px solid #dde1e7;
+  border-right: 1.5px solid #dde1e7;
+  border-top-right-radius: 6px;
 }
 
 .mind-card-text {
-  @apply min-w-0 flex-1 overflow-hidden;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .mind-card-title {
-  @apply block truncate text-[13px] font-medium leading-snug text-slate-800;
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mind-card-url {
-  @apply mt-0.5 block truncate text-[11px] leading-snug text-slate-400;
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mind-card-meta {
-  @apply mt-0.5 block truncate text-[11px] leading-snug text-slate-400;
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mind-card-arrow {
-  @apply h-4 w-4 flex-shrink-0 text-slate-300 transition-transform duration-150;
+  height: 18px;
+  width: 18px;
+  flex-shrink: 0;
+  color: #cbd5e1;
+  transition: transform 0.25s ease, color 0.2s ease;
 }
 
 .mind-card-arrow-open {
-  @apply rotate-90 text-slate-500;
+  transform: rotate(90deg);
+  color: var(--accent, #10b981);
 }
 
-/* ==================== Hover actions ==================== */
-.mind-card-actions {
-  @apply ml-1 flex flex-shrink-0 items-center gap-0.5 opacity-0 transition-opacity;
+/* ==================== Drag handle: inside left edge ==================== */
+.node-drag-handle {
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  height: 24px;
+  width: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: #cbd5e1;
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.12s ease;
+  z-index: 5;
 }
 
-.mind-card:hover .mind-card-actions,
-.mind-card:focus-within .mind-card-actions {
-  @apply opacity-100;
+.mind-card:hover .node-drag-handle {
+  opacity: 1;
 }
 
+.node-drag-handle:active {
+  cursor: grabbing;
+}
+
+.node-drag-handle:hover {
+  color: #64748b;
+}
+
+/* Icon */
+.mind-card-icon {
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+/* Inline form utility buttons */
 .node-act {
-  @apply inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600;
+  display: inline-flex;
+  height: 26px;
+  width: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  color: #94a3b8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.12s ease, background-color 0.12s ease;
 }
 
-.node-act-danger {
-  @apply hover:bg-rose-50 hover:text-rose-500;
+.node-act:hover {
+  background-color: #f1f5f9;
+  color: #475569;
 }
 
-/* ==================== Branch ==================== */
+/* Drag ghost */
+.mind-drag-ghost {
+  opacity: 0.3;
+}
+
+/* ==================== Branch & connectors ==================== */
 .mind-branch {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding-left: 24px;
-  border-left: 2px solid #cbd5e1;
-  margin-left: 0;
-  gap: 4px;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  gap: 2px;
+  padding-left: 12px;
+  padding-top: 6px;
+  padding-bottom: 2px;
+  border-left: 1.5px solid #dde1e7;
 }
 
 .mind-child {
@@ -314,42 +515,243 @@ function cleanUrl(url: string): string {
   padding: 2px 0;
 }
 
+/* Horizontal connector */
 .mind-child::before {
   content: '';
   position: absolute;
-  left: -24px;
-  top: 50%;
-  width: 24px;
-  height: 0;
-  border-top: 2px solid #cbd5e1;
-  transform: translateY(-1px);
+  left: -12px;
+  top: 26px;
+  width: 8px;
+  border-top: 1.5px solid #dde1e7;
+}
+
+/* Junction dot */
+.mind-child::after {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 23.5px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent, #10b981);
+}
+
+/* Last child: cap the vertical line */
+.mind-child:last-child {
+  padding-bottom: 0;
 }
 
 .mind-children {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+}
+
+/* ==================== Context Menu ==================== */
+.mind-context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 130px;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.ctx-item:hover {
+  background: #f1f5f9;
+}
+
+.ctx-item-danger {
+  color: #ef4444;
+}
+
+.ctx-item-danger:hover {
+  background: #fef2f2;
+}
+
+.mind-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+}
+
+/* ==================== Transition animations ==================== */
+.mind-slide-enter-active {
+  transition: all 0.25s ease-out;
+  overflow: hidden;
+}
+
+.mind-slide-leave-active {
+  transition: all 0.15s ease-in;
+  overflow: hidden;
+}
+
+.mind-slide-enter-from {
+  opacity: 0;
+  max-height: 0;
+  transform: translateX(-8px);
+}
+
+.mind-slide-enter-to {
+  opacity: 1;
+  max-height: 5000px;
+  transform: translateX(0);
+}
+
+.mind-slide-leave-from {
+  opacity: 1;
+  max-height: 5000px;
+  transform: translateX(0);
+}
+
+.mind-slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateX(-8px);
 }
 
 /* ==================== Inline add form ==================== */
 .mind-inline-card {
-  @apply flex flex-shrink-0 items-center gap-2.5 rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/40 pl-3 pr-2 py-2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 2px dashed #6ee7b7;
+  background: rgba(209, 250, 229, 0.35);
+  flex-shrink: 0;
 }
 
 .mind-inline-fields {
-  @apply flex flex-col gap-1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .mind-inline-input {
-  @apply h-6 w-44 rounded-md border border-slate-200 bg-white px-2 text-[13px] text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100;
+  height: 26px;
+  width: 180px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* ==================== Empty state ==================== */
+.mind-inline-input::placeholder {
+  color: #94a3b8;
+}
+
+.mind-inline-input:focus {
+  border-color: #34d399;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
+}
+
+/* ==================== Add buttons ==================== */
 .mind-add-bar {
-  @apply flex items-center gap-2 py-1.5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
 }
 
 .add-btn {
-  @apply inline-flex h-6 items-center gap-1 rounded-md border border-dashed border-slate-300 px-2 text-[11px] text-slate-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1.5px dashed #cbd5e1;
+  font-size: 12px;
+  color: #94a3b8;
+  background: none;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.add-btn:hover {
+  color: #10b981;
+  border-color: #6ee7b7;
+  background-color: rgba(209, 250, 229, 0.3);
+}
+
+/* ==================== Focus ring ==================== */
+.mind-card:focus-visible {
+  outline: 2px solid var(--accent, #10b981);
+  outline-offset: 2px;
+}
+
+/* ==================== Mobile: vertical layout (≤768px) ==================== */
+@media (max-width: 768px) {
+  .mind-node {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Redirect connector: card bottom → branch (curves down-left) */
+  .mind-card-expanded::after {
+    left: 30px;
+    top: 100%;
+    width: 14px;
+    height: 10px;
+    border: none;
+    border-bottom: 1.5px solid #dde1e7;
+    border-left: 1.5px solid #dde1e7;
+    border-bottom-left-radius: 6px;
+  }
+
+  .mind-branch {
+    border-left: none;
+    padding-left: 26px;
+    padding-top: 4px;
+  }
+
+  /* Vertical drop connector from above */
+  .mind-child::before {
+    left: -14px;
+    top: 0;
+    width: 0;
+    height: 26px;
+    border: none;
+    border-left: 1.5px solid #dde1e7;
+  }
+
+  /* Junction dot at top of child */
+  .mind-child::after {
+    left: -16px;
+    top: 24px;
+  }
+
+  .mind-child:last-child::before {
+    height: 26px;
+  }
+
+  .node-drag-handle {
+    opacity: 0.25;
+  }
 }
 </style>

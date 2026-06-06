@@ -56,6 +56,7 @@
       :title="modalTitle"
       :tree="tree"
       @close="closeModal"
+      @delete="handleDeleteFromModal"
       @save="handleSave"
     />
 
@@ -191,6 +192,11 @@ async function handleSave(payload: BookmarkFormPayload) {
   }
 }
 
+async function handleDeleteFromModal(node: BookmarkNode) {
+  closeModal();
+  await handleDelete(node);
+}
+
 async function handleDelete(node: BookmarkNode) {
   const message = node.type === 'folder' ? `确定删除文件夹"${node.title}"及其所有子节点吗？` : `确定删除书签"${node.title}"吗？`;
   if (!window.confirm(message)) return;
@@ -203,10 +209,31 @@ async function handleDelete(node: BookmarkNode) {
   }
 }
 
+function findAndReorder(nodes: BookmarkNode[], parentId: string, orderedIds: string[]): boolean {
+  for (const node of nodes) {
+    if (node.id === parentId) {
+      const idToChild = new Map(node.children.map((c) => [c.id, c]));
+      node.children = orderedIds.map((id) => idToChild.get(id)!).filter(Boolean);
+      return true;
+    }
+    if (node.children.length > 0 && findAndReorder(node.children, parentId, orderedIds)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 async function handleReorder(parentId: string | null, orderedIds: string[]) {
+  // Optimistic: update local tree immediately, no flash
+  if (parentId) {
+    findAndReorder(tree.value, parentId, orderedIds);
+  } else {
+    const idToNode = new Map(tree.value.map((n) => [n.id, n]));
+    tree.value = orderedIds.map((id) => idToNode.get(id)!).filter(Boolean);
+  }
+  // Persist in background
   try {
     await reorderBookmarks(parentId, orderedIds);
-    await loadTree();
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '排序失败');
     await loadTree();
