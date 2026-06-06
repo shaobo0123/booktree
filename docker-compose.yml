@@ -1,6 +1,6 @@
 services:
   booktree:
-    build: .
+    image: ghcr.io/shaobo0123/booktree:latest
     ports:
       - "${PORT:-3000}:3000"
     volumes:

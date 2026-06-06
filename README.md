@@ -35,11 +35,14 @@ npm run dev
 
 ## 一键部署
 
+镜像由 GitHub Actions 自动构建，部署时直接拉取，无需现场编译：
+
 ```bash
-git clone https://github.com/shaobo0123/booktree && cd booktree && docker compose up -d
+docker run -d -p 3000:3000 -v booktree_data:/app/data ghcr.io/shaobo0123/booktree:latest
 ```
 
-> 服务器需安装 Docker。部署后访问 `http://<服务器IP>:3000`，默认密码 `admin`。
+> 服务器需安装 Docker。部署后访问 `http://<服务器IP>:3000`，默认密码 `admin`。  
+> 自定义密码：追加 `-e ADMIN_PASSWORD=MyPass123`。
 
 ## 部署到服务器
 
