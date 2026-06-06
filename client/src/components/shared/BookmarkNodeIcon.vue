@@ -10,24 +10,33 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { Folder } from 'lucide-vue-next';
-import { useFaviconCache } from '../../composables/useFaviconCache';
 import type { BookmarkNode } from '../../types/bookmark';
+import { useFaviconFetcher } from '../../composables/useFaviconFetcher';
 
 const props = withDefaults(defineProps<{ node: BookmarkNode; size?: 'sm' | 'lg' }>(), { size: 'sm' });
 
-const { getFaviconUrl } = useFaviconCache();
 const imgError = ref(false);
+const { fetchFavicon, faviconCache } = useFaviconFetcher();
 
-const faviconState = computed(() => {
-  if (props.node.type !== 'bookmark' || !props.node.url) return { url: null, loading: false };
-  return getFaviconUrl(props.node.url, props.node.favicon_url);
-});
+const fetchedFavicon = computed(() => faviconCache.get(props.node.id));
 
 const faviconSrc = computed(() => {
   if (imgError.value) return null;
-  return faviconState.value.url;
+  if (props.node.type !== 'bookmark') return null;
+
+  // From DB cache (returned by getBookmarkTree)
+  if (props.node.favicon_base64 && props.node.favicon_mime) {
+    return `data:${props.node.favicon_mime};base64,${props.node.favicon_base64}`;
+  }
+
+  // From on-demand fetch cache (frontend composable)
+  if (fetchedFavicon.value) {
+    return `data:${fetchedFavicon.value.mime};base64,${fetchedFavicon.value.base64}`;
+  }
+
+  return null;
 });
 
 const firstLetter = computed(() => (props.node.title || '?')[0].toUpperCase());
@@ -38,6 +47,18 @@ const containerClass = computed(() => {
   return s === 'lg' ? 'h-12 w-12 bg-amber-50 text-amber-600' : 'h-8 w-8 bg-amber-50 text-amber-600';
 });
 
-// Reset img error when url changes
-watch(() => props.node.url, () => { imgError.value = false; });
+function maybeFetchFavicon() {
+  if (props.node.type !== 'bookmark' || !props.node.url) return;
+  if (props.node.favicon_base64) return; // Already cached in DB
+  fetchFavicon(props.node.id);
+}
+
+// Fetch on first render
+onMounted(() => { maybeFetchFavicon(); });
+
+// Re-fetch when bookmark changes or DB cache expired after tree reload
+watch([() => props.node.id, () => props.node.favicon_base64], () => {
+  imgError.value = false;
+  maybeFetchFavicon();
+});
 </script>

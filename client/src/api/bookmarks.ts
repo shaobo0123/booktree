@@ -75,3 +75,11 @@ export function exportBookmarks(rootId?: string | null) {
   const query = rootId ? `?root_id=${encodeURIComponent(rootId)}` : '';
   window.location.href = `/api/bookmarks/export${query}`;
 }
+
+export function clearFavicons() {
+  return request<{ ok: boolean }>('/api/bookmarks/clear-favicons', { method: 'POST' });
+}
+
+export function fetchBookmarkFavicon(id: string) {
+  return request<{ favicon_base64: string | null; favicon_mime: string | null }>(`/api/bookmarks/${id}/favicon`);
+}

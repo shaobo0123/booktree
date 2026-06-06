@@ -3,6 +3,10 @@ import { prisma } from '../db.js';
 import type { ImportedBookmarkNode } from '../utils/bookmarkHtml.js';
 import { createBookmarkHtml } from '../utils/bookmarkHtml.js';
 import { fetchPageInfo } from '../utils/fetchPageInfo.js';
+
+const FAVICON_SUCCESS_TTL = 3 * 24 * 60 * 60 * 1000;  // 3 days
+const FAVICON_FAILED_TTL  = 30 * 1000;  // 30s — prevent rapid retries on persistent failures
+
 function normalizeBookmarkUrl(value: string) {
   const raw = value.trim();
   if (!raw) throw new Error('URL is required for bookmarks');
@@ -17,7 +21,8 @@ export type BookmarkType = 'folder' | 'bookmark';
 export interface BookmarkNode {
   id: string; parent_id: string | null; title: string; type: BookmarkType;
   url: string | null;
-  favicon_url: string | null;
+  favicon_base64: string | null;
+  favicon_mime: string | null;
   sort_order: number; created_at: string; updated_at: string;
   children: BookmarkNode[];
 }
@@ -29,11 +34,34 @@ export interface UpdateBookmarkInput {
   title?: string; url?: string | null; parent_id?: string | null; sort_order?: number;
 }
 
-function toNode(record: Bookmark, faviconUrl?: string | null): BookmarkNode {
+function toNode(record: Bookmark): BookmarkNode {
+  const now = Date.now();
+
+  // Check if favicon cache is still valid
+  let faviconBase64: string | null = null;
+  let faviconMime: string | null = null;
+
+  if (record.type === 'bookmark' && record.faviconBase64 && record.faviconMime) {
+    const expiresAt = record.faviconExpiresAt?.getTime();
+    if (expiresAt && now < expiresAt) {
+      faviconBase64 = record.faviconBase64;
+      faviconMime = record.faviconMime;
+    }
+    // Expired → return nulls (icon will be white-letter fallback)
+  }
+
+  // Check if on failure cooldown
+  if (!faviconBase64 && record.iconFailedAt) {
+    if (now - record.iconFailedAt.getTime() < FAVICON_FAILED_TTL) {
+      // Still in cooldown — remain null
+    }
+  }
+
   return {
     id: record.id, parent_id: record.parentId, title: record.title, type: record.type as BookmarkType,
     url: record.url,
-    favicon_url: faviconUrl ?? null,
+    favicon_base64: faviconBase64,
+    favicon_mime: faviconMime,
     sort_order: record.sortOrder, created_at: record.createdAt.toISOString(), updated_at: record.updatedAt.toISOString(),
     children: []
   };
@@ -64,12 +92,21 @@ function fallbackTitleFromUrl(url: string) {
   } catch { return '未命名书签'; }
 }
 
-/** Fetch page info and resolve title, return faviconUrl */
-async function resolvePageMeta(url: string, userTitle?: string): Promise<{ title: string; faviconUrl: string | null }> {
+interface ResolvedMeta {
+  title: string;
+  faviconBase64: string | null;
+  faviconMime: string | null;
+  faviconFailed: boolean;
+}
+
+/** Fetch page info and resolve title + favicon base64 */
+async function resolvePageMeta(url: string, userTitle?: string): Promise<ResolvedMeta> {
   const pageInfo = await fetchPageInfo(url);
   return {
     title: userTitle || pageInfo.title || fallbackTitleFromUrl(url),
-    faviconUrl: pageInfo.faviconUrl,
+    faviconBase64: pageInfo.faviconBase64,
+    faviconMime: pageInfo.faviconMime,
+    faviconFailed: !pageInfo.faviconBase64,
   };
 }
 
@@ -99,6 +136,61 @@ export async function getBookmarkTree(): Promise<BookmarkNode[]> {
   return roots;
 }
 
+// Deduplicated in-flight favicon fetch by URL (on-demand, triggered by frontend)
+const inFlightFavicons = new Map<string, Promise<{ favicon_base64: string | null; favicon_mime: string | null }>>();
+
+export async function fetchBookmarkFavicon(bookmarkId: string): Promise<{ favicon_base64: string | null; favicon_mime: string | null }> {
+  const bookmark = await prisma.bookmark.findUnique({ where: { id: bookmarkId } });
+  if (!bookmark || bookmark.type !== 'bookmark' || !bookmark.url) {
+    return { favicon_base64: null, favicon_mime: null };
+  }
+
+  const now = Date.now();
+
+  // Valid cached favicon → return immediately
+  if (bookmark.faviconBase64 && bookmark.faviconMime && bookmark.faviconExpiresAt) {
+    if (now < bookmark.faviconExpiresAt.getTime()) {
+      return { favicon_base64: bookmark.faviconBase64, favicon_mime: bookmark.faviconMime };
+    }
+  }
+
+  // On failure cooldown → skip
+  if (bookmark.iconFailedAt && now - bookmark.iconFailedAt.getTime() < FAVICON_FAILED_TTL) {
+    return { favicon_base64: null, favicon_mime: null };
+  }
+
+  // Already in-flight for this URL → join existing Promise
+  const existing = inFlightFavicons.get(bookmark.url);
+  if (existing) return existing;
+
+  const promise = fetchAndCacheFavicon(bookmark.url);
+  inFlightFavicons.set(bookmark.url, promise);
+  try {
+    return await promise;
+  } finally {
+    inFlightFavicons.delete(bookmark.url);
+  }
+}
+
+async function fetchAndCacheFavicon(url: string): Promise<{ favicon_base64: string | null; favicon_mime: string | null }> {
+  try {
+    const pageInfo = await fetchPageInfo(url);
+    const now = new Date();
+    await prisma.bookmark.updateMany({
+      where: { url },
+      data: {
+        faviconBase64: pageInfo.faviconBase64,
+        faviconMime: pageInfo.faviconMime,
+        faviconExpiresAt: pageInfo.faviconBase64 ? new Date(now.getTime() + FAVICON_SUCCESS_TTL) : null,
+        iconFailedAt: pageInfo.faviconBase64 ? null : now,
+      },
+    });
+    return { favicon_base64: pageInfo.faviconBase64, favicon_mime: pageInfo.faviconMime };
+  } catch {
+    return { favicon_base64: null, favicon_mime: null };
+  }
+}
+
 export async function createBookmark(input: CreateBookmarkInput): Promise<BookmarkNode> {
   const title = input.title?.trim() ?? '';
   const parentId = input.parent_id ?? null;
@@ -115,15 +207,20 @@ export async function createBookmark(input: CreateBookmarkInput): Promise<Bookma
 
   const url = normalizeBookmarkUrl(input.url ?? '');
   const meta = await resolvePageMeta(url, title || undefined);
+  const now = new Date();
   const record = await prisma.bookmark.create({
     data: {
       title: meta.title,
       type: 'bookmark', url,
+      faviconBase64: meta.faviconBase64,
+      faviconMime: meta.faviconMime,
+      faviconExpiresAt: meta.faviconBase64 ? new Date(now.getTime() + FAVICON_SUCCESS_TTL) : null,
+      iconFailedAt: meta.faviconFailed ? now : null,
       parentId,
       sortOrder: input.sort_order ?? await nextSortOrder(parentId)
     }
   });
-  return toNode(record, meta.faviconUrl);
+  return toNode(record);
 }
 
 export async function updateBookmark(id: string, input: UpdateBookmarkInput): Promise<BookmarkNode> {
@@ -143,13 +240,19 @@ export async function updateBookmark(id: string, input: UpdateBookmarkInput): Pr
   let url = input.url === undefined ? existing.url : input.url?.trim() || null;
   if (existing.type === 'bookmark' && !url) throw new Error('URL is required');
 
-  let faviconUrl: string | null = null;
+  let faviconData: Record<string, unknown> = {};
 
   if (existing.type === 'bookmark' && url) {
     url = normalizeBookmarkUrl(url);
     const meta = await resolvePageMeta(url, title || undefined);
     title = meta.title;
-    faviconUrl = meta.faviconUrl;
+    const now = new Date();
+    faviconData = {
+      faviconBase64: meta.faviconBase64,
+      faviconMime: meta.faviconMime,
+      faviconExpiresAt: meta.faviconBase64 ? new Date(now.getTime() + FAVICON_SUCCESS_TTL) : null,
+      iconFailedAt: meta.faviconFailed ? now : null,
+    };
   }
 
   const record = await prisma.bookmark.update({
@@ -159,9 +262,10 @@ export async function updateBookmark(id: string, input: UpdateBookmarkInput): Pr
       url: existing.type === 'folder' ? null : url,
       parentId: nextParentId ?? null,
       sortOrder: input.sort_order ?? existing.sortOrder,
+      ...faviconData,
     }
   });
-  return toNode(record, faviconUrl);
+  return toNode(record);
 }
 
 export async function removeBookmark(id: string) {

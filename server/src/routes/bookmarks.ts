@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
+import { prisma } from '../db.js';
 import {
   createBookmark,
   exportBookmarkHtmlByRoot,
+  fetchBookmarkFavicon,
   getBookmarkTree,
   importBookmarkNodes,
   removeBookmark,
@@ -51,6 +53,14 @@ router.get('/tree', async (_req, res) => {
 router.get('/search', async (req, res) => {
   try {
     res.json(await searchBookmarks(String(req.query.q ?? '')));
+  } catch (error) {
+    res.status(500).json({ error: errorMessage(error) });
+  }
+});
+
+router.get('/:id/favicon', async (req, res) => {
+  try {
+    res.json(await fetchBookmarkFavicon(req.params.id));
   } catch (error) {
     res.status(500).json({ error: errorMessage(error) });
   }
@@ -108,6 +118,17 @@ router.post('/import', upload.single('file'), async (req, res) => {
     res.status(201).json({ imported });
   } catch (error) {
     res.status(400).json({ error: errorMessage(error) });
+  }
+});
+
+router.post('/clear-favicons', async (_req, res) => {
+  try {
+    await prisma.bookmark.updateMany({
+      data: { faviconBase64: null, faviconMime: null, faviconExpiresAt: null, iconFailedAt: null }
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(500).json({ error: errorMessage(error) });
   }
 });
 

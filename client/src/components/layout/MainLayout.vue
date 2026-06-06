@@ -11,6 +11,7 @@
       @select-breadcrumb="(id) => $emit('select-folder', id)"
       @new-folder="(parentId) => $emit('create-folder', parentId)"
       @new-bookmark="(parentId) => $emit('create-bookmark', parentId)"
+      @clear-favicons="$emit('clear-favicons')"
     />
 
     <div class="flex min-h-0 flex-1 relative">
@@ -113,7 +114,7 @@ const emit = defineEmits<{
   'reorder': [parentId: string | null, orderedIds: string[]];
   'create-folder': [parentId: string | null]; 'create-bookmark': [parentId: string | null];
   'contextmenu': [payload: { node: BookmarkNode; x: number; y: number }];
-  'export': []; 'import': [file: File]; 'toggle-sidebar': [id: string];
+  'export': []; 'import': [file: File]; 'toggle-sidebar': [id: string]; 'clear-favicons': [];
   'update:searchOpen': [value: boolean]; 'update:viewMode': [mode: ViewMode];
 }>();
 

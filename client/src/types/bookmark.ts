@@ -7,7 +7,8 @@ export interface BookmarkNode {
   title: string;
   type: BookmarkType;
   url: string | null;
-  favicon_url: string | null;
+  favicon_base64: string | null;
+  favicon_mime: string | null;
   sort_order: number;
   created_at: string;
   updated_at: string;

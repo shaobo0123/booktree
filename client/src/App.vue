@@ -19,6 +19,7 @@
       @export="openExportModal"
       @import="handleImport"
       @toggle-sidebar="toggleSidebarExpanded"
+      @clear-favicons="handleClearFavicons"
       @update:searchOpen="(val: boolean) => searchOpen = val"
       @update:viewMode="(mode: ViewMode) => viewMode = mode"
     />
@@ -104,6 +105,7 @@ import {
   X
 } from 'lucide-vue-next';
 import {
+  clearFavicons,
   createBookmark,
   deleteBookmark,
   exportBookmarks,
@@ -430,6 +432,15 @@ async function handleImport(file: File) {
     window.alert(`已导入，共 ${result.imported} 个节点`);
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '导入失败');
+  }
+}
+
+async function handleClearFavicons() {
+  try {
+    await clearFavicons();
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '清除失败');
   }
 }
 
