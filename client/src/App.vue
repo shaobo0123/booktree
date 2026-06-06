@@ -232,8 +232,8 @@ function openEdit(node: BookmarkNode) {
   editingNode.value = node;
   modalDefaultType.value = node.type;
   modalDefaultParentId.value = node.parent_id;
-  modalShowContextFields.value = true;
-  modalTitle.value = '编辑';
+  modalShowContextFields.value = false;
+  modalTitle.value = node.type === 'folder' ? '文件夹编辑' : '书签编辑';
   modalOpen.value = true;
 }
 

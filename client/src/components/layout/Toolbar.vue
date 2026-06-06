@@ -1,6 +1,6 @@
 <template>
   <header class="flex h-12 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4">
-    <!-- Left: toggle + logo + Breadcrumb -->
+    <!-- Left: toggle + logo -->
     <div class="flex min-w-0 items-center gap-2">
       <button class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-slate-500 transition-colors hover:bg-slate-100" @click="$emit('toggle-sidebar')">
         <PanelLeft class="h-4 w-4" :stroke-width="2" />
@@ -8,11 +8,6 @@
       <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
         <LibraryBig class="h-4 w-4" :stroke-width="2.25" />
       </div>
-      <Breadcrumb
-        :path="breadcrumbPath"
-        :selected-folder-id="selectedFolderId"
-        @select="(id: string | null) => $emit('select-breadcrumb', id)"
-      />
     </div>
 
     <!-- Right: Search + Actions -->

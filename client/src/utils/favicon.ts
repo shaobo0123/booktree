@@ -1,33 +1,41 @@
-const THIRD_PARTY = [
-  (domain: string) => `https://icons.duckduckgo.com/ip3/${domain}.ico`,
-  (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
-  (domain: string) => `https://icon.horse/icon/${domain}`,
-  (domain: string) => `https://favicon.im/${domain}`,
-];
-
-function tryLoadImage(url: string): Promise<string | null> {
+/** Try to load an image URL with a timeout */
+function tryLoadImage(url: string, timeout = 5000): Promise<string | null> {
   return new Promise((resolve) => {
+    let settled = false;
+    const done = (result: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
     const img = new Image();
-    img.onload = () => resolve(url);
-    img.onerror = () => resolve(null);
+    const timer = setTimeout(() => done(null), timeout);
+
+    img.onload = () => {
+      clearTimeout(timer);
+      done(url);
+    };
+    img.onerror = () => {
+      clearTimeout(timer);
+      done(null);
+    };
     img.src = url;
   });
 }
 
-export async function discoverFaviconUrl(pageUrl: string): Promise<string> {
-  const u = new URL(pageUrl);
-  const domain = u.hostname;
+const CANDIDATES = [
+  (domain: string) => `https://${domain}/favicon.ico`,
+  (domain: string) => `https://favicon.im/${domain}`,
+  (domain: string) => `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+  (domain: string) => `https://icon.horse/icon/${domain}`,
+  (domain: string) => `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+];
 
-  // Tier 2: /favicon.ico
-  const ico = await tryLoadImage(`${u.origin}/favicon.ico`);
-  if (ico) return ico;
-
-  // Tier 4: third-party services
-  for (const fn of THIRD_PARTY) {
+/** Try multiple favicon sources in order, return first success or null */
+export async function resolveFavicon(domain: string): Promise<string | null> {
+  for (const fn of CANDIDATES) {
     const url = await tryLoadImage(fn(domain));
     if (url) return url;
   }
-
-  // All failed → return first third-party URL anyway (browser will show broken img)
-  return THIRD_PARTY[0](domain);
+  return null;
 }

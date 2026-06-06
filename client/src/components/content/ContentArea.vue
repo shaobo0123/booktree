@@ -90,12 +90,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue';
+import { computed } from 'vue';
 import { AlignJustify, FolderPlus, Inbox, LayoutGrid, LibraryBig, Plus } from 'lucide-vue-next';
 import Breadcrumb from '../layout/Breadcrumb.vue';
 import SectionList from './SectionList.vue';
-import { discoverFaviconUrl } from '../../utils/favicon';
-import { saveFaviconUrl } from '../../api/bookmarks';
 import type { BookmarkNode, ViewMode } from '../../types/bookmark';
 
 const props = defineProps<{
@@ -157,42 +155,4 @@ function folderStats(node: BookmarkNode): string {
   const p: string[] = []; if (bms > 0) p.push(`${bms} 书签`); if (flds > 0) p.push(`${flds} 子文件夹`);
   return p.join(' · ') || '空';
 }
-
-// --- Lazy icon loading ---
-const iconQueue: { id: string; url: string }[] = [];
-let iconTimer: ReturnType<typeof setTimeout> | null = null;
-
-function needsIcon(b: BookmarkNode): boolean {
-  if (b.type !== 'bookmark' || !b.url) return false;
-  if (b.favicon_url) return false;
-  if (b.icon_failed_at) {
-    if (Date.now() - new Date(b.icon_failed_at).getTime() < 2 * 24 * 60 * 60 * 1000) return false;
-  }
-  return true;
-}
-
-async function processIconQueue() {
-  if (iconQueue.length === 0) { iconTimer = null; return; }
-  const { id, url } = iconQueue.shift()!;
-  try {
-    const faviconUrl = await discoverFaviconUrl(url);
-    await saveFaviconUrl(id, faviconUrl);
-    // Update local tree
-    const bm = findNodeById(id);
-    if (bm) bm.favicon_url = faviconUrl;
-  } catch { /* best effort */ }
-  iconTimer = setTimeout(processIconQueue, 400);
-}
-
-function enqueueIcons(bookmarks: BookmarkNode[]) {
-  for (const b of bookmarks) {
-    if (!needsIcon(b)) continue;
-    if (iconQueue.some(q => q.id === b.id)) continue;
-    iconQueue.push({ id: b.id, url: b.url! });
-  }
-  if (!iconTimer) processIconQueue();
-}
-
-watch(orderedBookmarks, (val) => { if (val.length > 0) enqueueIcons(val); });
-onMounted(() => { if (orderedBookmarks.value.length > 0) enqueueIcons(orderedBookmarks.value); });
 </script>

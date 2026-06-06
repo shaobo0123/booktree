@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { prisma } from '../db.js';
 import {
   createBookmark,
   exportBookmarkHtmlByRoot,
@@ -61,19 +60,6 @@ router.put('/reorder', async (req, res) => {
   try {
     const payload = reorderSchema.parse(req.body);
     await reorderBookmarks(payload.parent_id, payload.ordered_ids);
-    res.json({ ok: true });
-  } catch (error) {
-    res.status(400).json({ error: errorMessage(error) });
-  }
-});
-
-router.put('/:id/favicon', async (req, res) => {
-  try {
-    const { faviconUrl } = z.object({ faviconUrl: z.string().url() }).parse(req.body);
-    await prisma.bookmark.update({
-      where: { id: req.params.id },
-      data: { faviconUrl, faviconExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), iconFailedAt: null }
-    });
     res.json({ ok: true });
   } catch (error) {
     res.status(400).json({ error: errorMessage(error) });

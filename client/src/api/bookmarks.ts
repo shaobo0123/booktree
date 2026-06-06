@@ -71,13 +71,6 @@ export function reorderBookmarks(parentId: string | null, orderedIds: string[]) 
   });
 }
 
-export function saveFaviconUrl(id: string, faviconUrl: string) {
-  return request<{ ok: boolean }>(`/api/bookmarks/${id}/favicon`, {
-    method: 'PUT',
-    body: JSON.stringify({ faviconUrl })
-  });
-}
-
 export function exportBookmarks(rootId?: string | null) {
   const query = rootId ? `?root_id=${encodeURIComponent(rootId)}` : '';
   window.location.href = `/api/bookmarks/export${query}`;
