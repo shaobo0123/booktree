@@ -94,7 +94,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import {
   Copy,
   ExternalLink,
@@ -110,7 +111,6 @@ import {
   exportBookmarks,
   getBookmarkTree,
   importBookmarks,
-  refreshBookmarkIcon,
   reorderBookmarks,
   updateBookmark
 } from './api/bookmarks';
@@ -127,9 +127,23 @@ interface MenuItem { label: string; icon?: any; shortcut?: string; danger?: bool
 const tree = ref<BookmarkNode[]>([]);
 const loading = ref(false);
 const loadError = ref<string | null>(null);
-const selectedFolderId = ref<string | null>(null);
+const route = useRoute();
+const router = useRouter();
+
+const selectedFolderId = ref<string | null>(route.params.id as string ?? null);
 const viewMode = ref<ViewMode>('list');
 const searchOpen = ref(false);
+
+// Sync URL ← selectedFolderId
+watch(selectedFolderId, (id) => {
+  const target = id ? `/folder/${id}` : '/';
+  if (route.path !== target) router.replace(target);
+});
+
+// Sync selectedFolderId ← URL (back/forward navigation)
+watch(() => route.params.id, (id) => {
+  selectedFolderId.value = (id as string) ?? null;
+});
 
 // --- Sidebar ---
 const { toggleExpanded } = useSidebarState();
@@ -178,15 +192,7 @@ async function loadTree() {
 
 // --- Bookmark actions ---
 function openBookmark(node: BookmarkNode) {
-  if (node.url) {
-    void refreshBookmarkIcon(node.id)
-      .then(() => {
-        window.clearTimeout(metadataRefreshTimer);
-        metadataRefreshTimer = window.setTimeout(loadTree, 3500);
-      })
-      .catch(() => {});
-    window.open(node.url, '_blank', 'noopener,noreferrer');
-  }
+  if (node.url) window.open(node.url, '_blank', 'noopener,noreferrer');
 }
 
 // --- Create ---
@@ -215,7 +221,6 @@ const modalDefaultType = ref<BookmarkType>('folder');
 const modalDefaultParentId = ref<string | null>(null);
 const modalShowContextFields = ref(true);
 const editingNode = ref<BookmarkNode | null>(null);
-let metadataRefreshTimer: number | undefined;
 
 function openEdit(node: BookmarkNode) {
   editingNode.value = node;
@@ -239,8 +244,6 @@ async function handleSave(payload: BookmarkFormPayload) {
     }
     closeModal();
     await loadTree();
-    window.clearTimeout(metadataRefreshTimer);
-    metadataRefreshTimer = window.setTimeout(loadTree, 3500);
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '保存失败');
   }

@@ -1,52 +1,32 @@
 <template>
   <span
-    class="flex flex-shrink-0 items-center justify-center rounded-xl transition-colors"
-    :class="[
-      size === 'lg'
-        ? node.type === 'folder'
-          ? 'h-12 w-12 bg-amber-50 text-amber-500 group-hover:bg-amber-100'
-          : 'h-12 w-12 bg-slate-100 text-slate-500 group-hover:bg-slate-200/70'
-        : node.type === 'folder'
-          ? 'h-8 w-8 bg-amber-50 text-amber-600 group-hover:bg-amber-100'
-          : 'h-8 w-8 bg-slate-100 text-slate-500 group-hover:bg-slate-200/70'
-    ]"
+    class="flex flex-shrink-0 items-center justify-center rounded-lg transition-colors"
+    :class="containerClass"
   >
-    <Folder v-if="node.type === 'folder'" :class="size === 'lg' ? 'h-6 w-6' : 'h-4 w-4'" :stroke-width="2.25" />
-    <img v-else-if="iconSrc && !iconFailed" :src="iconSrc" alt="" :class="size === 'lg' ? 'h-7 w-7' : 'h-5 w-5'" class="rounded-sm object-contain" @error="iconFailed = true" />
-    <LinkIcon v-else :class="size === 'lg' ? 'h-5 w-5' : 'h-4 w-4'" :stroke-width="2.25" />
+    <Folder v-if="node.type === 'folder'" :class="size === 'lg' ? 'h-6 w-6' : 'h-4 w-4'" :stroke-width="2" />
+    <img v-else-if="faviconSrc && !iconFailed" :src="faviconSrc" alt="" :class="size === 'lg' ? 'h-6 w-6' : 'h-4 w-4'" class="rounded-sm object-contain" @error="iconFailed = true" />
+    <span v-else-if="node.type === 'bookmark'" class="font-semibold text-slate-500" :class="size === 'lg' ? 'text-base' : 'text-[11px]'">{{ firstLetter }}</span>
   </span>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Folder, Link as LinkIcon } from 'lucide-vue-next';
+import { Folder } from 'lucide-vue-next';
 import type { BookmarkNode } from '../types/bookmark';
 
-const props = withDefaults(defineProps<{
-  node: BookmarkNode;
-  size?: 'sm' | 'lg';
-}>(), {
-  size: 'sm'
-});
+const props = withDefaults(defineProps<{ node: BookmarkNode; size?: 'sm' | 'lg' }>(), { size: 'sm' });
 
 const iconFailed = ref(false);
 
-const iconSrc = computed(() => {
-  if (props.node.type !== 'bookmark') {
-    return null;
-  }
+const faviconSrc = computed(() => props.node.type === 'bookmark' ? props.node.favicon_url : null);
 
-  if (props.node.favicon_base64 && props.node.favicon_mime) {
-    return `data:${props.node.favicon_mime};base64,${props.node.favicon_base64}`;
-  }
+const firstLetter = computed(() => (props.node.title || '?')[0].toUpperCase());
 
-  return props.node.favicon_url;
+const containerClass = computed(() => {
+  const s = props.size;
+  if (props.node.type === 'bookmark') return s === 'lg' ? 'h-10 w-10 bg-slate-100' : 'h-5 w-5 bg-slate-100';
+  return s === 'lg' ? 'h-12 w-12 bg-amber-50 text-amber-600' : 'h-8 w-8 bg-amber-50 text-amber-600';
 });
 
-watch(
-  () => [props.node.id, props.node.favicon_url, props.node.favicon_base64, props.node.favicon_mime],
-  () => {
-    iconFailed.value = false;
-  }
-);
+watch(() => [props.node.id, props.node.favicon_url, props.node.favicon_base64], () => { iconFailed.value = false; });
 </script>

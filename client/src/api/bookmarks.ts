@@ -71,9 +71,10 @@ export function reorderBookmarks(parentId: string | null, orderedIds: string[]) 
   });
 }
 
-export function refreshBookmarkIcon(id: string) {
-  return request<{ ok: boolean }>(`/api/bookmarks/${id}/refresh-icon`, {
-    method: 'POST'
+export function saveFaviconUrl(id: string, faviconUrl: string) {
+  return request<{ ok: boolean }>(`/api/bookmarks/${id}/favicon`, {
+    method: 'PUT',
+    body: JSON.stringify({ faviconUrl })
   });
 }
 

@@ -13,9 +13,11 @@ model Bookmark {
   title     String
   type      String
   url       String?
-  faviconUrl    String?    @map("favicon_url")
-  faviconBase64 String?    @map("favicon_base64")
-  faviconMime   String?    @map("favicon_mime")
+  faviconUrl       String?    @map("favicon_url")
+  faviconBase64    String?    @map("favicon_base64")
+  faviconMime      String?    @map("favicon_mime")
+  faviconExpiresAt DateTime?  @map("favicon_expires_at")
+  iconFailedAt     DateTime?  @map("icon_failed_at")
   sortOrder Int        @default(0) @map("sort_order")
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")

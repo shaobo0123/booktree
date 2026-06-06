@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
+import { prisma } from '../db.js';
 import {
   createBookmark,
   exportBookmarkHtmlByRoot,
   getBookmarkTree,
   importBookmarkNodes,
-  refreshBookmarkIconInBackground,
   removeBookmark,
   reorderBookmarks,
   searchBookmarks,
@@ -67,12 +67,16 @@ router.put('/reorder', async (req, res) => {
   }
 });
 
-router.post('/:id/refresh-icon', async (req, res) => {
+router.put('/:id/favicon', async (req, res) => {
   try {
-    await refreshBookmarkIconInBackground(req.params.id);
-    res.status(202).json({ ok: true });
+    const { faviconUrl } = z.object({ faviconUrl: z.string().url() }).parse(req.body);
+    await prisma.bookmark.update({
+      where: { id: req.params.id },
+      data: { faviconUrl, faviconExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), iconFailedAt: null }
+    });
+    res.json({ ok: true });
   } catch (error) {
-    res.status(404).json({ error: errorMessage(error) });
+    res.status(400).json({ error: errorMessage(error) });
   }
 });
 
