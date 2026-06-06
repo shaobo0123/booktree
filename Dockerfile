@@ -23,5 +23,6 @@ COPY --from=build /app/server/src ./server/src
 # Copy built frontend
 COPY --from=build /app/client/dist ./client/dist
 
+ENV SERVE_STATIC=/app/client/dist
 EXPOSE 3000
 CMD ["bun", "run", "server/src/main.ts"]
