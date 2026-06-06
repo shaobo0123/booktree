@@ -1,28 +1,25 @@
 # ---- Build Stage ----
-FROM oven/bun:1 AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 
-# Install workspace dependencies
-COPY package.json bun.lockb ./
+# Install workspace dependencies (npm, not bun)
+COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY client/package.json client/
-RUN bun install --frozen-lockfile
+RUN npm ci
 
-# Copy source and build
+# Copy source and build frontend
 COPY . .
-RUN cd client && bun run build
+RUN cd client && npm run build
 
 # ---- Runtime Stage ----
 FROM oven/bun:1-slim
 WORKDIR /app
 
-# Copy workspace config and node_modules
-COPY --from=build /app/package.json /app/bun.lockb ./
+# Copy hoisted node_modules (all workspace deps)
 COPY --from=build /app/node_modules ./node_modules
 
-# Copy server source and deps
-COPY --from=build /app/server/package.json ./server/
-COPY --from=build /app/server/node_modules ./server/node_modules
+# Copy server source and prisma schema
 COPY --from=build /app/server/src ./server/src
 COPY --from=build /app/server/prisma ./server/prisma
 
