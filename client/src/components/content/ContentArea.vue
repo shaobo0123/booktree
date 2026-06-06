@@ -80,60 +80,23 @@
       </div>
 
       <template v-else>
-        <!-- ========== FOLDERS SECTION ========== -->
-        <section v-if="folders.length > 0" class="mb-8">
-          <div class="mb-3 flex items-center gap-2">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">文件夹</span>
-            <span class="text-[11px] text-slate-300">{{ folders.length }}</span>
-          </div>
-
-          <!-- List View -->
-          <draggable v-if="viewMode === 'list'" v-model="localFolders" item-key="id" class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="onFolderDragEnd">
-            <template #item="{ element: f }">
-              <ListItem :node="f" :subtitle="folderStats(f)" @click="$emit('select-folder', f.id)" @contextmenu="(p) => $emit('contextmenu', p)" />
-            </template>
-          </draggable>
-
-          <!-- Grid View -->
-          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
-            <GridCard v-for="f in orderedFolders" :key="f.id" :node="f" :subtitle="folderStats(f)" @click="$emit('select-folder', f.id)" @contextmenu="(p) => $emit('contextmenu', p)" />
-          </div>
-        </section>
-
-        <!-- ========== BOOKMARKS SECTION ========== -->
-        <section v-if="bookmarks.length > 0">
-          <div class="mb-3 flex items-center gap-2">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">书签</span>
-            <span class="text-[11px] text-slate-300">{{ bookmarks.length }}</span>
-          </div>
-
-          <!-- List View -->
-          <draggable v-if="viewMode === 'list'" v-model="localBookmarks" item-key="id" class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="onBookmarkDragEnd">
-            <template #item="{ element: b }">
-              <ListItem :node="b" :subtitle="cleanUrl(b.url || '')" @click="$emit('open-bookmark', b)" @contextmenu="(p) => $emit('contextmenu', p)" />
-            </template>
-          </draggable>
-
-          <!-- Grid View -->
-          <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-            <GridCard v-for="b in orderedBookmarks" :key="b.id" :node="b" :subtitle="cleanUrl(b.url || '')" @click="$emit('open-bookmark', b)" @contextmenu="(p) => $emit('contextmenu', p)" />
-          </div>
-        </section>
+        <SectionList v-if="orderedFolders.length > 0" :items="orderedFolders" label="文件夹" :subtitle-fn="folderStats" :view-mode="viewMode" grid-min-width="200px" mb
+          @click-item="(f) => $emit('select-folder', f.id)" @reorder="onFolderDragEnd" @contextmenu="(p) => $emit('contextmenu', p)" />
+        <SectionList v-if="orderedBookmarks.length > 0" :items="orderedBookmarks" label="书签" :subtitle-fn="(b) => cleanUrl(b.url || '')" :view-mode="viewMode" grid-min-width="180px"
+          @click-item="(b) => $emit('open-bookmark', b)" @reorder="onBookmarkDragEnd" @contextmenu="(p) => $emit('contextmenu', p)" />
       </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
-import draggable from 'vuedraggable';
+import { computed, onMounted, watch } from 'vue';
 import { AlignJustify, FolderPlus, Inbox, LayoutGrid, LibraryBig, Plus } from 'lucide-vue-next';
-import Breadcrumb from './Breadcrumb.vue';
-import ListItem from './ListItem.vue';
-import GridCard from './GridCard.vue';
-import { discoverFaviconUrl } from '../utils/favicon';
-import { saveFaviconUrl } from '../api/bookmarks';
-import type { BookmarkNode, ViewMode } from '../types/bookmark';
+import Breadcrumb from '../layout/Breadcrumb.vue';
+import SectionList from './SectionList.vue';
+import { discoverFaviconUrl } from '../../utils/favicon';
+import { saveFaviconUrl } from '../../api/bookmarks';
+import type { BookmarkNode, ViewMode } from '../../types/bookmark';
 
 const props = defineProps<{
   tree: BookmarkNode[];
@@ -179,17 +142,11 @@ const breadcrumbPath = computed(() => {
   return walk(props.selectedFolderId, props.tree) ?? [];
 });
 
-// --- Draggable local state ---
-const localFolders = ref<BookmarkNode[]>([...orderedFolders.value]);
-const localBookmarks = ref<BookmarkNode[]>([...orderedBookmarks.value]);
-watch(orderedFolders, v => { localFolders.value = [...v]; });
-watch(orderedBookmarks, v => { localBookmarks.value = [...v]; });
-
 function onFolderDragEnd() {
-  emit('reorder', props.selectedFolderId, [...localFolders.value.map(n => n.id), ...orderedBookmarks.value.map(n => n.id)]);
+  emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...orderedBookmarks.value.map(n => n.id)]);
 }
 function onBookmarkDragEnd() {
-  emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...localBookmarks.value.map(n => n.id)]);
+  emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...orderedBookmarks.value.map(n => n.id)]);
 }
 
 // --- Shared helpers ---

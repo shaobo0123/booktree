@@ -98,7 +98,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Check, ChevronDown, ChevronRight, Folder, Search } from 'lucide-vue-next';
-import type { BookmarkNode } from '../types/bookmark';
+import type { BookmarkNode } from '../../types/bookmark';
 
 interface FolderRow {
   id: string;

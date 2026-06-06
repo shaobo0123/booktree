@@ -54,7 +54,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
 import { Trash2, X } from 'lucide-vue-next';
-import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from '../types/bookmark';
+import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from '../../types/bookmark';
 
 const props = defineProps<{
   title: string;

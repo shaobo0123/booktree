@@ -82,7 +82,7 @@ import {
   Upload
 } from 'lucide-vue-next';
 import Breadcrumb from './Breadcrumb.vue';
-import type { BookmarkNode } from '../types/bookmark';
+import type { BookmarkNode } from '../../types/bookmark';
 
 defineProps<{
   query: string;

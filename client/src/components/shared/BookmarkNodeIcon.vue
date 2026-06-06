@@ -12,7 +12,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { Folder } from 'lucide-vue-next';
-import type { BookmarkNode } from '../types/bookmark';
+import type { BookmarkNode } from '../../types/bookmark';
 
 const props = withDefaults(defineProps<{ node: BookmarkNode; size?: 'sm' | 'lg' }>(), { size: 'sm' });
 

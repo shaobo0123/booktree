@@ -96,9 +96,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { Folder, Search } from 'lucide-vue-next';
-import { searchBookmarks } from '../api/bookmarks';
-import BookmarkNodeIcon from './BookmarkNodeIcon.vue';
-import type { BookmarkNode } from '../types/bookmark';
+import { searchBookmarks } from '../../api/bookmarks';
+import BookmarkNodeIcon from '../shared/BookmarkNodeIcon.vue';
+import type { BookmarkNode } from '../../types/bookmark';
 
 const emit = defineEmits<{
   close: [];

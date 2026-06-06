@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 import { ChevronRight, Folder } from 'lucide-vue-next';
-import type { BookmarkNode } from '../types/bookmark';
+import type { BookmarkNode } from '../../types/bookmark';
 
 defineProps<{
   path: BookmarkNode[];

@@ -15,7 +15,7 @@
 
     <div class="flex min-h-0 flex-1 relative">
       <!-- Sidebar: fixed mode -->
-      <aside v-if="sidebarOpen && sidebarPinned" class="flex h-full w-[280px] flex-shrink-0 flex-col border-r border-slate-200 bg-white">
+      <aside v-if="sidebarOpen && sidebarPinned" class="flex h-full flex-shrink-0 flex-col border-r border-slate-200 bg-white relative" :style="{ width: sidebarWidth + 'px' }">
         <div class="flex items-center justify-between px-3 py-3">
             <span class="text-[13px] font-semibold text-slate-700">目录</span>
             <div class="flex items-center gap-1">
@@ -26,6 +26,7 @@
           <div class="min-h-0 flex-1 overflow-y-auto column-scrollbar px-1.5 pb-4">
             <Sidebar :tree="tree" :selected-id="selectedFolderId" @select="(id) => $emit('select-folder', id)" @toggle="(id) => $emit('toggle-sidebar', id)" @contextmenu="(payload) => $emit('contextmenu', payload)" />
           </div>
+          <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-emerald-400 transition-colors" @mousedown="onResizeStart" />
       </aside>
 
       <!-- Sidebar: overlay mode -->
@@ -91,14 +92,14 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
 import { FolderPlus, Pin, PinOff } from 'lucide-vue-next';
-import Sidebar from './Sidebar.vue';
+import Sidebar from '../sidebar/Sidebar.vue';
 import Toolbar from './Toolbar.vue';
-import ContentArea from './ContentArea.vue';
-import SearchOverlay from './SearchOverlay.vue';
-import BookmarkNodeIcon from './BookmarkNodeIcon.vue';
-import { searchBookmarks } from '../api/bookmarks';
-import type { BookmarkNode } from '../types/bookmark';
-import type { ViewMode } from '../types/bookmark';
+import ContentArea from '../content/ContentArea.vue';
+import SearchOverlay from '../modal/SearchOverlay.vue';
+import BookmarkNodeIcon from '../shared/BookmarkNodeIcon.vue';
+import { searchBookmarks } from '../../api/bookmarks';
+import type { BookmarkNode } from '../../types/bookmark';
+import type { ViewMode } from '../../types/bookmark';
 
 defineProps<{
   tree: BookmarkNode[]; loading: boolean; error: string | null;
@@ -118,8 +119,19 @@ const emit = defineEmits<{
 
 const sidebarOpen = ref(true);
 const sidebarPinned = ref(window.innerWidth >= 768);
+const sidebarWidth = ref(280);
 
 onMounted(() => { sidebarPinned.value = window.innerWidth >= 768; });
+
+function onResizeStart(e: MouseEvent) {
+  e.preventDefault();
+  const startX = e.clientX;
+  const startW = sidebarWidth.value;
+  const onMove = (ev: MouseEvent) => { sidebarWidth.value = Math.min(500, Math.max(180, startW + ev.clientX - startX)); };
+  const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
 const searchQuery = ref('');
 const searchResults = ref<BookmarkNode[]>([]);
 const searchLoading = ref(false);

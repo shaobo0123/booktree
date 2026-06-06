@@ -41,7 +41,7 @@
 import { computed, ref, watch } from 'vue';
 import { X } from 'lucide-vue-next';
 import FolderTreeSelect from './FolderTreeSelect.vue';
-import type { BookmarkNode } from '../types/bookmark';
+import type { BookmarkNode } from '../../types/bookmark';
 
 const props = defineProps<{
   tree: BookmarkNode[];

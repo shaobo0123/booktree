@@ -83,8 +83,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { BookmarkIcon, ChevronRight, Folder, FolderOpen } from 'lucide-vue-next';
-import { useSidebarState } from '../composables/useSidebarState';
-import type { BookmarkNode } from '../types/bookmark';
+import { useSidebarState } from '../../composables/useSidebarState';
+import type { BookmarkNode } from '../../types/bookmark';
 
 const props = defineProps<{
   tree?: BookmarkNode[];

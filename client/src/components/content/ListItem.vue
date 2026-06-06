@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex items-center gap-3 px-4 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group"
+    class="flex items-center gap-3 px-4 rounded-lg border border-slate-200 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm group"
     :class="node.type === 'folder' ? 'h-14' : 'h-12'"
     draggable="true"
     @click="$emit('click')"
@@ -24,8 +24,8 @@
 
 <script setup lang="ts">
 import { ChevronRight, Folder, GripVertical } from 'lucide-vue-next';
-import BookmarkNodeIcon from './BookmarkNodeIcon.vue';
-import type { BookmarkNode } from '../types/bookmark';
+import BookmarkNodeIcon from '../shared/BookmarkNodeIcon.vue';
+import type { BookmarkNode } from '../../types/bookmark';
 
 defineProps<{ node: BookmarkNode; subtitle: string }>();
 defineEmits<{ click: []; contextmenu: [payload: { node: BookmarkNode; x: number; y: number }] }>();

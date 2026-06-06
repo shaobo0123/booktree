@@ -112,10 +112,10 @@ import {
   reorderBookmarks,
   updateBookmark
 } from './api/bookmarks';
-import MainLayout from './components/MainLayout.vue';
-import BookmarkFormModal from './components/BookmarkFormModal.vue';
-import FolderTreeSelect from './components/FolderTreeSelect.vue';
-import ExportModal from './components/ExportModal.vue';
+import MainLayout from './components/layout/MainLayout.vue';
+import BookmarkFormModal from './components/modal/BookmarkFormModal.vue';
+import FolderTreeSelect from './components/modal/FolderTreeSelect.vue';
+import ExportModal from './components/modal/ExportModal.vue';
 import { useSidebarState } from './composables/useSidebarState';
 import { useKeyboard } from './composables/useKeyboard';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType, ViewMode } from './types/bookmark';

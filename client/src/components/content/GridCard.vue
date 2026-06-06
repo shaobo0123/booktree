@@ -15,8 +15,8 @@
 </template>
 
 <script setup lang="ts">
-import BookmarkNodeIcon from './BookmarkNodeIcon.vue';
-import type { BookmarkNode } from '../types/bookmark';
+import BookmarkNodeIcon from '../shared/BookmarkNodeIcon.vue';
+import type { BookmarkNode } from '../../types/bookmark';
 
 defineProps<{ node: BookmarkNode; subtitle: string }>();
 defineEmits<{ click: []; contextmenu: [payload: { node: BookmarkNode; x: number; y: number }] }>();
