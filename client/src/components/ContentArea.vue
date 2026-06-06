@@ -58,11 +58,11 @@
       <!-- Actions bar -->
       <div class="mb-5 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <button class="action-btn action-btn-primary" @click="$emit('create-folder', selectedFolderId)">
+          <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-[13px] text-emerald-700 cursor-pointer transition-colors hover:bg-emerald-100 hover:border-emerald-300" @click="$emit('create-folder', selectedFolderId)">
             <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" />
             <span>新建文件夹</span>
           </button>
-          <button class="action-btn" @click="$emit('create-bookmark', selectedFolderId)">
+          <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-slate-200 bg-white text-[13px] text-slate-600 cursor-pointer transition-colors hover:bg-slate-50 hover:border-slate-300" @click="$emit('create-bookmark', selectedFolderId)">
             <Plus class="h-3.5 w-3.5" :stroke-width="2" />
             <span>新建书签</span>
           </button>
@@ -71,16 +71,16 @@
           <!-- View mode toggle -->
           <div class="flex rounded-lg border border-slate-200 bg-white p-0.5">
             <button
-              class="view-toggle-btn"
-              :class="viewMode === 'list' ? 'view-toggle-active' : ''"
+              class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600"
+              :class="viewMode === 'list' ? 'bg-slate-100 text-slate-900' : ''"
               title="列表视图"
               @click="$emit('update:viewMode', 'list')"
             >
               <AlignJustify class="h-3.5 w-3.5" :stroke-width="2" />
             </button>
             <button
-              class="view-toggle-btn"
-              :class="viewMode === 'grid' ? 'view-toggle-active' : ''"
+              class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600"
+              :class="viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : ''"
               title="网格视图"
               @click="$emit('update:viewMode', 'grid')"
             >
@@ -98,11 +98,11 @@
         <p class="mt-3 text-sm font-medium text-slate-500">此文件夹为空</p>
         <p class="mt-1 text-xs text-slate-400">添加文件夹或书签来填充它</p>
         <div class="mt-4 flex items-center justify-center gap-2">
-          <button class="action-btn action-btn-primary" @click="$emit('create-folder', selectedFolderId)">
+          <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-[13px] text-emerald-700 cursor-pointer transition-colors hover:bg-emerald-100 hover:border-emerald-300" @click="$emit('create-folder', selectedFolderId)">
             <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" />
             <span>新建文件夹</span>
           </button>
-          <button class="action-btn" @click="$emit('create-bookmark', selectedFolderId)">
+          <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-slate-200 bg-white text-[13px] text-slate-600 cursor-pointer transition-colors hover:bg-slate-50 hover:border-slate-300" @click="$emit('create-bookmark', selectedFolderId)">
             <Plus class="h-3.5 w-3.5" :stroke-width="2" />
             <span>新建书签</span>
           </button>
@@ -318,54 +318,3 @@ function onBookmarkDragEnd() {
   emit('reorder', props.selectedFolderId, [...folderIds, ...bookmarkIds]);
 }
 </script>
-
-<style scoped>
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #475569;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color 0.1s ease, border-color 0.1s ease;
-}
-.action-btn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-}
-.action-btn-primary {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #059669;
-}
-.action-btn-primary:hover {
-  background: #d1fae5;
-  border-color: #6ee7b7;
-}
-
-.view-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  width: 32px;
-  border-radius: 6px;
-  border: none;
-  background: none;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: background-color 0.1s ease, color 0.1s ease;
-}
-.view-toggle-btn:hover {
-  color: #475569;
-}
-.view-toggle-active {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-</style>

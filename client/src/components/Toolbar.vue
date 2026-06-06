@@ -32,26 +32,26 @@
       <div class="mx-0.5 h-5 w-px bg-slate-200" />
 
       <!-- New Folder -->
-      <button class="toolbar-icon-btn" title="新建文件夹 (Shift+N)" @click="$emit('new-folder', selectedFolderId)">
+      <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="新建文件夹 (Shift+N)" @click="$emit('new-folder', selectedFolderId)">
         <FolderPlus class="h-4 w-4" :stroke-width="2" />
       </button>
 
       <!-- New Bookmark -->
-      <button class="toolbar-icon-btn" title="新建书签 (N)" @click="$emit('new-bookmark', selectedFolderId)">
+      <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="新建书签 (N)" @click="$emit('new-bookmark', selectedFolderId)">
         <BookmarkPlus class="h-4 w-4" :stroke-width="2" />
       </button>
 
       <!-- More actions dropdown -->
       <div class="relative">
-        <button class="toolbar-icon-btn" title="更多操作" @click="moreOpen = !moreOpen">
+        <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="更多操作" @click="moreOpen = !moreOpen">
           <MoreHorizontal class="h-4 w-4" :stroke-width="2" />
         </button>
-        <div v-if="moreOpen" class="toolbar-dropdown">
-          <button class="toolbar-dropdown-item" @click="openFilePicker(); moreOpen = false">
+        <div v-if="moreOpen" class="absolute right-0 top-full mt-1 z-20 min-w-[140px] p-1 bg-white border border-slate-200 rounded-[10px] shadow-[0_8px_30px_rgba(15,23,42,0.12)]">
+          <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100" @click="openFilePicker(); moreOpen = false">
             <Upload class="h-3.5 w-3.5" :stroke-width="2" />
             <span>导入书签</span>
           </button>
-          <button class="toolbar-dropdown-item" @click="$emit('export'); moreOpen = false">
+          <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100" @click="$emit('export'); moreOpen = false">
             <Download class="h-3.5 w-3.5" :stroke-width="2" />
             <span>导出书签</span>
           </button>
@@ -111,52 +111,3 @@ function handleFileChange(event: Event) {
   input.value = '';
 }
 </script>
-
-<style scoped>
-.toolbar-icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 30px;
-  width: 30px;
-  border-radius: 7px;
-  border: none;
-  background: none;
-  color: #64748b;
-  cursor: pointer;
-  transition: background-color 0.1s ease, color 0.1s ease;
-}
-.toolbar-icon-btn:hover {
-  background: #f1f5f9;
-  color: #334155;
-}
-.toolbar-dropdown {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 20;
-  min-width: 140px;
-  padding: 4px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
-}
-.toolbar-dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 10px;
-  border: none;
-  background: none;
-  border-radius: 7px;
-  font-size: 13px;
-  color: #334155;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-}
-.toolbar-dropdown-item:hover {
-  background: #f1f5f9;
-}
-</style>

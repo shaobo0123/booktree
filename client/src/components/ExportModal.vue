@@ -1,10 +1,10 @@
 <template>
   <Teleport to="body">
-    <div class="modal-backdrop" @click.self="$emit('close')">
-      <form class="modal-panel" @submit.prevent="submit">
+    <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px]" @click.self="$emit('close')">
+      <form class="w-full max-w-2xl rounded-2xl bg-white shadow-[0_24px_80px_-12px_rgba(15,23,42,0.18)]" @submit.prevent="submit">
         <div class="flex items-center justify-between px-6 py-4">
           <h2 class="text-base font-semibold text-slate-900">导出书签</h2>
-          <button class="icon-btn" type="button" title="关闭" @click="$emit('close')">
+          <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" type="button" title="关闭" @click="$emit('close')">
             <X class="h-4 w-4" />
           </button>
         </div>
@@ -29,8 +29,8 @@
         </div>
 
         <div class="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-          <button class="btn-ghost" type="button" @click="$emit('close')">取消</button>
-          <button class="btn-primary" type="submit">导出</button>
+          <button class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50" type="button" @click="$emit('close')">取消</button>
+          <button class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 active:bg-emerald-700" type="submit">导出</button>
         </div>
       </form>
     </div>
@@ -121,37 +121,3 @@ function submit() {
   emit('export', selectedRootId.value);
 }
 </script>
-
-<style scoped>
-.modal-backdrop {
-  @apply fixed inset-0 z-40 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px];
-  animation: fadeIn 0.15s ease-out;
-}
-
-.modal-panel {
-  @apply w-full max-w-2xl rounded-2xl bg-white shadow-[0_24px_80px_-12px_rgba(15,23,42,0.18)];
-  animation: slideUp 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.icon-btn {
-  @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700;
-}
-
-.btn-ghost {
-  @apply rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50;
-}
-
-.btn-primary {
-  @apply rounded-xl bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 active:bg-emerald-700;
-}
-</style>

@@ -48,11 +48,11 @@
 
     <!-- Move To Modal -->
     <Teleport to="body">
-      <div v-if="moveToModalVisible" class="modal-backdrop" @click.self="closeMoveToModal">
-        <div class="modal-panel">
+      <div v-if="moveToModalVisible" class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px]" @click.self="closeMoveToModal">
+        <div class="w-full max-w-lg rounded-2xl bg-white shadow-[0_24px_80px_-12px_rgba(15,23,42,0.18)]">
           <div class="flex items-center justify-between px-6 py-4">
             <h2 class="text-base font-semibold text-slate-900">移动到...</h2>
-            <button class="icon-btn" type="button" @click="closeMoveToModal">
+            <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" type="button" @click="closeMoveToModal">
               <X class="h-4 w-4" />
             </button>
           </div>
@@ -507,30 +507,3 @@ onUnmounted(() => {
   window.removeEventListener('bookmark-drop', handleBookmarkDrop);
 });
 </script>
-
-<style>
-/* Modal styles reused from existing code */
-.modal-backdrop {
-  @apply fixed inset-0 z-40 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px];
-  animation: fadeIn 0.15s ease-out;
-}
-
-.modal-panel {
-  @apply w-full max-w-lg rounded-2xl bg-white shadow-[0_24px_80px_-12px_rgba(15,23,42,0.18)];
-  animation: slideUp 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.icon-btn {
-  @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700;
-}
-</style>

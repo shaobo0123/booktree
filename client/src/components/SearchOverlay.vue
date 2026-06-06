@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
-    <div class="search-overlay-backdrop" @click="$emit('close')">
-      <div class="search-overlay-panel" @click.stop>
+    <div class="fixed inset-0 z-50 flex justify-center pt-[15vh] bg-slate-900/30 backdrop-blur-sm" @click="$emit('close')">
+      <div class="w-[560px] max-h-[480px] bg-white rounded-[14px] border border-slate-200 shadow-[0_24px_80px_-12px_rgba(15,23,42,0.18)] overflow-hidden flex flex-col" @click.stop>
         <!-- Search input -->
         <div class="flex items-center gap-3 border-b border-slate-200 px-4">
           <Search class="h-5 w-5 flex-shrink-0 text-slate-400" :stroke-width="2" />
@@ -16,7 +16,7 @@
             @keydown.arrow-up.prevent="moveSelection(-1)"
             @keydown.enter.prevent="activateSelection"
           />
-          <kbd class="search-kbd">Esc</kbd>
+          <kbd class="inline-flex items-center h-[22px] px-1.5 rounded-[5px] border border-slate-200 bg-slate-50 text-[11px] text-slate-400">Esc</kbd>
         </div>
 
         <!-- Results -->
@@ -45,8 +45,8 @@
               <button
                 v-for="(item, index) in folderResults"
                 :key="item.id"
-                class="search-result-item"
-                :class="selectedIndex === index ? 'search-result-selected' : ''"
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg border-none bg-transparent w-full cursor-pointer transition-colors hover:bg-slate-100"
+                :class="selectedIndex === index ? '!bg-emerald-50' : ''"
                 @click="selectFolder(item.id)"
               >
                 <Folder class="h-4 w-4 flex-shrink-0 text-amber-500" :stroke-width="2" />
@@ -61,8 +61,8 @@
               <button
                 v-for="(item, index) in bookmarkResults"
                 :key="item.id"
-                class="search-result-item"
-                :class="selectedIndex === folderResults.length + index ? 'search-result-selected' : ''"
+                class="flex items-center gap-2.5 px-2.5 py-2 rounded-lg border-none bg-transparent w-full cursor-pointer transition-colors hover:bg-slate-100"
+                :class="selectedIndex === folderResults.length + index ? '!bg-emerald-50' : ''"
                 @click="openBookmark(item)"
               >
                 <BookmarkNodeIcon :node="item" />
@@ -79,13 +79,13 @@
         <!-- Footer hint -->
         <div class="flex items-center gap-4 border-t border-slate-100 px-4 py-2">
           <span class="text-[11px] text-slate-400">
-            <kbd class="hint-kbd">↑↓</kbd> 导航
+            <kbd class="inline-flex items-center h-[18px] px-1 rounded-[4px] border border-slate-200 bg-slate-50 text-[10px] text-slate-400">↑↓</kbd> 导航
           </span>
           <span class="text-[11px] text-slate-400">
-            <kbd class="hint-kbd">Enter</kbd> 打开
+            <kbd class="inline-flex items-center h-[18px] px-1 rounded-[4px] border border-slate-200 bg-slate-50 text-[10px] text-slate-400">Enter</kbd> 打开
           </span>
           <span class="text-[11px] text-slate-400">
-            <kbd class="hint-kbd">Esc</kbd> 关闭
+            <kbd class="inline-flex items-center h-[18px] px-1 rounded-[4px] border border-slate-200 bg-slate-50 text-[10px] text-slate-400">Esc</kbd> 关闭
           </span>
         </div>
       </div>
@@ -181,79 +181,3 @@ onMounted(() => {
   });
 });
 </script>
-
-<style scoped>
-.search-overlay-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  justify-content: center;
-  padding-top: 15vh;
-  background: rgba(15, 23, 42, 0.3);
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.15s ease-out;
-}
-.search-overlay-panel {
-  width: 560px;
-  max-height: 480px;
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 24px 80px -12px rgba(15, 23, 42, 0.18);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  animation: slideUp 0.2s ease-out;
-}
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.search-result-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: none;
-  background: none;
-  width: 100%;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-}
-.search-result-item:hover {
-  background: #f1f5f9;
-}
-.search-result-selected {
-  background: #ecfdf5;
-}
-.search-kbd {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 5px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  font-family: inherit;
-  font-size: 11px;
-  color: #94a3b8;
-}
-.hint-kbd {
-  display: inline-flex;
-  align-items: center;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 4px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-  font-family: inherit;
-  font-size: 10px;
-  color: #94a3b8;
-}
-</style>

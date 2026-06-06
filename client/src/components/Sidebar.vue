@@ -2,8 +2,8 @@
   <div class="flex flex-col gap-0.5">
     <!-- Root-level "all bookmarks" item -->
     <button
-      class="sidebar-root-item"
-      :class="selectedId === null ? 'sidebar-item-selected' : ''"
+      class="flex items-center gap-2 h-[34px] px-3 rounded-md text-[13px] text-slate-600 border-none bg-transparent cursor-pointer transition-colors hover:bg-slate-100 w-full"
+      :class="selectedId === null ? '!bg-emerald-50 !text-emerald-700 !font-semibold' : ''"
       @click="$emit('select', null)"
       @contextmenu.prevent
     >
@@ -49,29 +49,3 @@ const rootFolders = computed(() =>
   props.tree.filter((n) => n.type === 'folder')
 );
 </script>
-
-<style scoped>
-.sidebar-root-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #475569;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-  width: 100%;
-}
-.sidebar-root-item:hover {
-  background-color: #f1f5f9;
-}
-.sidebar-item-selected {
-  background-color: #ecfdf5 !important;
-  color: #059669;
-  font-weight: 600;
-}
-</style>

@@ -1,10 +1,10 @@
 <template>
   <div>
     <div
-      class="sidebar-item"
+      class="flex items-center gap-1.5 h-[34px] pr-2 rounded-md text-slate-600 cursor-pointer transition-colors select-none hover:bg-slate-100"
       :class="{
-        'sidebar-item-selected': selectedId === node.id,
-        'sidebar-item-drag-over': dragOver
+        '!bg-emerald-50 !text-emerald-700 !font-semibold': selectedId === node.id,
+        'shadow-[inset_0_0_0_2px_#6ee7b7] bg-emerald-50': dragOver
       }"
       :style="{ paddingLeft: `${depth * 16 + 12}px` }"
       draggable="true"
@@ -18,7 +18,7 @@
       <!-- Expand/Collapse arrow -->
       <button
         v-if="hasSubFolders"
-        class="sidebar-expand-btn"
+        class="inline-flex items-center justify-center w-4 h-4 flex-shrink-0 rounded-sm border-none bg-transparent p-0 text-slate-400 cursor-pointer transition-transform hover:text-slate-600"
         :class="isExpandedLocal ? 'rotate-90' : ''"
         @click.stop="handleToggle"
       >
@@ -142,48 +142,3 @@ function onDrop(e: DragEvent) {
   }
 }
 </script>
-
-<style scoped>
-.sidebar-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding-right: 8px;
-  border-radius: 6px;
-  color: #475569;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-  user-select: none;
-}
-.sidebar-item:hover {
-  background-color: #f1f5f9;
-}
-.sidebar-item-selected {
-  background-color: #ecfdf5 !important;
-  color: #059669;
-  font-weight: 600;
-}
-.sidebar-item-drag-over {
-  box-shadow: inset 0 0 0 2px #6ee7b7;
-  background-color: #ecfdf5;
-}
-.sidebar-expand-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  border-radius: 4px;
-  border: none;
-  background: none;
-  color: #94a3b8;
-  cursor: pointer;
-  padding: 0;
-  transition: transform 0.15s ease, color 0.1s ease;
-}
-.sidebar-expand-btn:hover {
-  color: #475569;
-}
-</style>

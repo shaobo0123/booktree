@@ -3,7 +3,7 @@
     <!-- Backdrop -->
     <div
       v-if="visible"
-      class="context-menu-backdrop"
+      class="fixed inset-0 z-[9998]"
       @click="$emit('close')"
       @contextmenu.prevent="$emit('close')"
     />
@@ -11,15 +11,15 @@
     <!-- Menu -->
     <div
       v-if="visible"
-      class="context-menu"
+      class="fixed z-[9999] min-w-[160px] p-1 bg-white border border-slate-200 rounded-[10px] shadow-[0_8px_30px_rgba(15,23,42,0.12)] flex flex-col"
       :style="{ left: x + 'px', top: y + 'px' }"
       @click.stop
     >
       <template v-for="(item, index) in items" :key="index">
-        <div v-if="item.separator" class="context-menu-separator" />
+        <div v-if="item.separator" class="h-px bg-slate-200 mx-2 my-1" />
         <button
-          class="context-menu-item"
-          :class="{ 'context-menu-item-danger': item.danger }"
+          class="flex items-center gap-2 px-2.5 py-[7px] border-none bg-transparent rounded-[7px] text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100"
+          :class="{ 'text-red-500 hover:bg-red-50': item.danger }"
           @click="handleAction(item)"
         >
           <component :is="item.icon" v-if="item.icon" class="h-3.5 w-3.5" :stroke-width="2" />
@@ -59,50 +59,3 @@ function handleAction(item: ContextMenuItem) {
   emit('close');
 }
 </script>
-
-<style scoped>
-.context-menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 9998;
-}
-.context-menu {
-  position: fixed;
-  z-index: 9999;
-  min-width: 160px;
-  padding: 4px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
-  display: flex;
-  flex-direction: column;
-}
-.context-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border: none;
-  background: none;
-  border-radius: 7px;
-  font-size: 13px;
-  color: #334155;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-}
-.context-menu-item:hover {
-  background: #f1f5f9;
-}
-.context-menu-item-danger {
-  color: #ef4444;
-}
-.context-menu-item-danger:hover {
-  background: #fef2f2;
-}
-.context-menu-separator {
-  height: 1px;
-  background: #e2e8f0;
-  margin: 4px 8px;
-}
-</style>

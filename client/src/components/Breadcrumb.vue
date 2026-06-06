@@ -1,8 +1,8 @@
 <template>
   <nav class="flex items-center gap-1 text-[13px]" aria-label="面包屑导航">
     <button
-      class="breadcrumb-item"
-      :class="selectedFolderId === null ? 'breadcrumb-current' : ''"
+      class="inline-flex items-center gap-1 px-1.5 py-[3px] rounded-md border-none bg-transparent text-[13px] text-slate-500 cursor-pointer transition-colors whitespace-nowrap hover:bg-slate-100 hover:text-slate-700"
+      :class="selectedFolderId === null ? 'text-slate-900 font-semibold cursor-default hover:bg-transparent hover:text-slate-900' : ''"
       @click="$emit('select', null)"
     >
       <Folder class="h-3.5 w-3.5" :stroke-width="2" />
@@ -13,7 +13,7 @@
       <ChevronRight class="h-3.5 w-3.5 flex-shrink-0 text-slate-300" :stroke-width="2" />
       <button
         class="breadcrumb-item"
-        :class="index === path.length - 1 ? 'breadcrumb-current' : ''"
+        :class="index === path.length - 1 ? 'text-slate-900 font-semibold cursor-default hover:bg-transparent hover:text-slate-900' : ''"
         @click="$emit('select', segment.id)"
       >
         <span>{{ segment.title }}</span>
@@ -35,33 +35,3 @@ defineEmits<{
   select: [id: string | null];
 }>();
 </script>
-
-<style scoped>
-.breadcrumb-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 6px;
-  border-radius: 6px;
-  border: none;
-  background: none;
-  color: #64748b;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background-color 0.1s ease, color 0.1s ease;
-  white-space: nowrap;
-}
-.breadcrumb-item:hover {
-  background-color: #f1f5f9;
-  color: #334155;
-}
-.breadcrumb-current {
-  color: #0f172a;
-  font-weight: 600;
-  cursor: default;
-}
-.breadcrumb-current:hover {
-  background: none;
-  color: #0f172a;
-}
-</style>

@@ -1,13 +1,13 @@
 <template>
   <div
-    class="bookmark-row group"
+    class="flex items-center gap-2.5 h-10 px-3 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group"
     draggable="true"
     @click="$emit('click')"
     @contextmenu.prevent="(e) => $emit('contextmenu', { node, x: e.clientX, y: e.clientY })"
     @dragstart="onDragStart"
   >
     <!-- Drag handle -->
-    <span class="drag-handle opacity-0 transition-opacity group-hover:opacity-100">
+    <span class="flex items-center justify-center w-5 h-5 flex-shrink-0 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 transition-opacity group-hover:opacity-100">
       <GripVertical class="h-4 w-4" :stroke-width="2" />
     </span>
 
@@ -30,16 +30,16 @@
     </div>
 
     <!-- Actions (hover) -->
-    <div class="bookmark-row-actions">
+    <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-1/2 -translate-y-1/2 bg-white p-0.5 rounded-md border border-slate-200 shadow-sm">
       <button
-        class="row-action-btn"
+        class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100"
         title="编辑"
         @click.stop="$emit('edit', node)"
       >
         <Pencil class="h-3.5 w-3.5" :stroke-width="2" />
       </button>
       <button
-        class="row-action-btn row-action-danger"
+        class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500"
         title="删除"
         @click.stop="$emit('delete', node)"
       >
@@ -95,71 +95,3 @@ function onDragStart(e: DragEvent) {
   }
 }
 </script>
-
-<style scoped>
-.bookmark-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 40px;
-  padding: 0 12px;
-  background: #fff;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-  position: relative;
-}
-.bookmark-row:hover {
-  background-color: #f8fafc;
-}
-.drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  color: #94a3b8;
-  cursor: grab;
-}
-.drag-handle:active {
-  cursor: grabbing;
-}
-.bookmark-row-actions {
-  display: flex;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.1s ease;
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #fff;
-  padding: 2px;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-}
-.bookmark-row:hover .bookmark-row-actions {
-  opacity: 1;
-}
-.row-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 26px;
-  width: 26px;
-  border-radius: 5px;
-  border: none;
-  background: none;
-  color: #64748b;
-  cursor: pointer;
-  transition: background-color 0.1s ease;
-}
-.row-action-btn:hover {
-  background: #f1f5f9;
-}
-.row-action-danger:hover {
-  background: #fef2f2;
-  color: #ef4444;
-}
-</style>
