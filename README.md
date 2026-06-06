@@ -2,6 +2,9 @@
 
 在线书签管理器，支持无限嵌套文件夹、拖拽排序、导入导出。
 
+![主界面](images/image1.png)
+![搜索与导入导出](images/image2.png)
+
 ## 快速开始
 
 ```bash
@@ -30,6 +33,14 @@ npm run dev
 | `npm run dev:server` | 仅后端 |
 | `npm run build` | 构建前后端 |
 
+## 一键部署
+
+```bash
+git clone https://github.com/shaobo0123/booktree && cd booktree && docker compose up -d
+```
+
+> 服务器需安装 Docker。部署后访问 `http://<服务器IP>:3000`，默认密码 `admin`。
+
 ## 部署到服务器
 
 ### 仅后端（配合 1Panel 或 nginx 反向代理）
@@ -44,7 +55,23 @@ npm run dev
 ./start-full.sh            # 一个端口同时提供 API + 前端页面
 ```
 
-### 通用部署步骤
+### Docker 部署（推荐）
+
+```bash
+# 全量部署（前端 + 后端，单端口 3000）
+docker compose up -d
+
+# 仅后端 API（配合外部 nginx 反向代理）
+SERVE_STATIC= docker compose up -d
+```
+
+数据持久化在 Docker volume 中，`DATABASE_URL`、`ADMIN_PASSWORD`、`JWT_SECRET` 等可通过环境变量覆盖：
+
+```bash
+ADMIN_PASSWORD=MyPass123 JWT_SECRET=xxx docker compose up -d
+```
+
+### 手动部署
 
 1. 本地构建：`npm run build`
 2. 把 `server/`、`client/dist/`、`start-server.sh`、`start-full.sh` 上传到服务器
@@ -54,7 +81,7 @@ npm run dev
    - 前后端一体：`./start-full.sh`
    - 仅后端（配合 nginx 反向代理）：`./start-server.sh`
 
-### 环境变量（`server/.env`）
+### 环境变量
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|

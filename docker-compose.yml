@@ -1,0 +1,16 @@
+services:
+  booktree:
+    build: .
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - booktree_data:/app/data
+    environment:
+      - DATABASE_URL=file:./data/dev.db
+      - SERVE_STATIC=${SERVE_STATIC:-/app/client/dist}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - JWT_SECRET=${JWT_SECRET:-}
+    restart: unless-stopped
+
+volumes:
+  booktree_data:
