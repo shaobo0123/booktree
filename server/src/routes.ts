@@ -217,6 +217,19 @@ addRoute("GET", "/api/bookmarks/export", (req) => {
 });
 
 // --- Router ---
+const STATIC_DIR = process.env.SERVE_STATIC || null;
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".woff2": "font/woff2",
+};
+
 export async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
@@ -243,13 +256,31 @@ export async function handleRequest(req: Request): Promise<Response> {
       const user = getAuthUser(req);
       const res = await route.handler(req, user, params);
 
-      // Add CORS headers to response
       for (const [key, value] of Object.entries(corsHeaders)) {
         if (!res.headers.has(key)) {
           res.headers.set(key, value);
         }
       }
       return res;
+    }
+  }
+
+  // Static file serving (production mode)
+  if (STATIC_DIR && req.method === "GET") {
+    let filePath = url.pathname === "/" ? "/index.html" : url.pathname;
+    const file = Bun.file(STATIC_DIR + filePath);
+    if (await file.exists()) {
+      const ext = "." + (filePath.split(".").pop() ?? "");
+      return new Response(file, {
+        headers: { "Content-Type": MIME[ext] ?? "application/octet-stream" }
+      });
+    }
+    // SPA fallback
+    const index = Bun.file(STATIC_DIR + "/index.html");
+    if (await index.exists()) {
+      return new Response(index, {
+        headers: { "Content-Type": "text/html; charset=utf-8" }
+      });
     }
   }
 
