@@ -21,16 +21,10 @@
         </div>
         <div>
           <p class="text-[15px] font-semibold text-slate-700">欢迎使用 Tree Bookmarks</p>
-          <p class="mt-1.5 text-[13px] leading-relaxed text-slate-400">
-            创建第一个文件夹来组织你的书签
-          </p>
+          <p class="mt-1.5 text-[13px] leading-relaxed text-slate-400">创建第一个文件夹来组织你的书签</p>
         </div>
-        <button
-          class="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-[13px] font-medium text-white shadow-sm shadow-emerald-900/10 transition-colors hover:bg-emerald-600"
-          @click="$emit('create-folder', null)"
-        >
-          <FolderPlus class="h-4 w-4" :stroke-width="2" />
-          创建文件夹
+        <button class="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-[13px] font-medium text-white shadow-sm shadow-emerald-900/10 transition-colors hover:bg-emerald-600" @click="$emit('create-folder', null)">
+          <FolderPlus class="h-4 w-4" :stroke-width="2" /> 创建文件夹
         </button>
       </div>
     </div>
@@ -39,19 +33,10 @@
     <div v-else class="mx-auto w-full max-w-[960px] px-8 py-6">
       <!-- Header -->
       <div class="mb-6">
-        <Breadcrumb
-          :path="breadcrumbPath"
-          :selected-folder-id="selectedFolderId"
-          @select="(id: string | null) => $emit('select-folder', id)"
-        />
-
+        <Breadcrumb :path="breadcrumbPath" :selected-folder-id="selectedFolderId" @select="(id) => $emit('select-folder', id)" />
         <div class="mt-3 flex items-baseline gap-3">
-          <h1 class="text-lg font-bold text-slate-900">
-            {{ currentFolderTitle }}
-          </h1>
-          <span class="text-[13px] text-slate-400">
-            {{ folderCount }} 个文件夹 · {{ bookmarkCount }} 个书签
-          </span>
+          <h1 class="text-lg font-bold text-slate-900">{{ currentFolderTitle }}</h1>
+          <span class="text-[13px] text-slate-400">{{ folderCount }} 个文件夹 · {{ bookmarkCount }} 个书签</span>
         </div>
       </div>
 
@@ -59,31 +44,18 @@
       <div class="mb-5 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-[13px] text-emerald-700 cursor-pointer transition-colors hover:bg-emerald-100 hover:border-emerald-300" @click="$emit('create-folder', selectedFolderId)">
-            <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>新建文件夹</span>
+            <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建文件夹</span>
           </button>
           <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-slate-200 bg-white text-[13px] text-slate-600 cursor-pointer transition-colors hover:bg-slate-50 hover:border-slate-300" @click="$emit('create-bookmark', selectedFolderId)">
-            <Plus class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>新建书签</span>
+            <Plus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建书签</span>
           </button>
         </div>
         <div class="flex items-center gap-2">
-          <!-- View mode toggle -->
           <div class="flex rounded-lg border border-slate-200 bg-white p-0.5">
-            <button
-              class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600"
-              :class="viewMode === 'list' ? 'bg-slate-100 text-slate-900' : ''"
-              title="列表视图"
-              @click="$emit('update:viewMode', 'list')"
-            >
+            <button class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600" :class="viewMode === 'list' ? 'bg-slate-100 text-slate-900' : ''" title="列表视图" @click="$emit('update:viewMode', 'list')">
               <AlignJustify class="h-3.5 w-3.5" :stroke-width="2" />
             </button>
-            <button
-              class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600"
-              :class="viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : ''"
-              title="网格视图"
-              @click="$emit('update:viewMode', 'grid')"
-            >
+            <button class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600" :class="viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : ''" title="网格视图" @click="$emit('update:viewMode', 'grid')">
               <LayoutGrid class="h-3.5 w-3.5" :stroke-width="2" />
             </button>
           </div>
@@ -99,100 +71,109 @@
         <p class="mt-1 text-xs text-slate-400">添加文件夹或书签来填充它</p>
         <div class="mt-4 flex items-center justify-center gap-2">
           <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-[13px] text-emerald-700 cursor-pointer transition-colors hover:bg-emerald-100 hover:border-emerald-300" @click="$emit('create-folder', selectedFolderId)">
-            <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>新建文件夹</span>
+            <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建文件夹</span>
           </button>
           <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-slate-200 bg-white text-[13px] text-slate-600 cursor-pointer transition-colors hover:bg-slate-50 hover:border-slate-300" @click="$emit('create-bookmark', selectedFolderId)">
-            <Plus class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>新建书签</span>
+            <Plus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建书签</span>
           </button>
         </div>
       </div>
 
       <template v-else>
-        <!-- FOLDERS section -->
+        <!-- ========== FOLDERS SECTION ========== -->
         <section v-if="folders.length > 0" class="mb-5">
           <div class="mb-2 flex items-center gap-2">
             <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">文件夹</span>
             <span class="text-[11px] text-slate-300">{{ folders.length }}</span>
           </div>
 
-          <!-- List View for Folders -->
-          <draggable
-            v-if="viewMode === 'list'"
-            v-model="localFolders"
-            item-key="id"
-            class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white"
-            handle=".drag-handle"
-            ghost-class="opacity-30"
-            :animation="200"
-            @change="onFolderDragEnd"
-          >
-            <template #item="{ element: folder }">
-              <FolderRow
-                :node="folder"
-                @click="$emit('select-folder', folder.id)"
-                @edit="(n) => $emit('edit', n)"
-                @delete="(n) => $emit('delete', n)"
-                @contextmenu="(payload) => $emit('contextmenu', payload)"
-              />
+          <!-- List View -->
+          <draggable v-if="viewMode === 'list'" v-model="localFolders" item-key="id" class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="onFolderDragEnd">
+            <template #item="{ element: f }">
+              <div class="flex items-center gap-2.5 h-11 px-3 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group" draggable="true" @click="$emit('select-folder', f.id)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: f, x: e.clientX, y: e.clientY })" @dragstart="(e) => { e.dataTransfer!.setData('text/plain', f.id); e.dataTransfer!.effectAllowed = 'move'; }">
+                <span class="flex items-center justify-center w-5 h-5 flex-shrink-0 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 transition-opacity group-hover:opacity-100 drag-handle">
+                  <GripVertical class="h-4 w-4" :stroke-width="2" />
+                </span>
+                <Folder class="h-5 w-5 flex-shrink-0 text-amber-500" :stroke-width="2" />
+                <div class="min-w-0 flex-1">
+                  <span class="block truncate text-[13px] font-semibold text-slate-800">{{ f.title }}</span>
+                  <span class="block truncate text-[12px] text-slate-400">{{ folderStats(f) }}</span>
+                </div>
+                <ChevronRight class="h-4 w-4 flex-shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5" :stroke-width="2" />
+                <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-1/2 -translate-y-1/2 bg-white p-0.5 rounded-md border border-slate-200 shadow-sm">
+                  <button class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', f)"><Pencil class="h-3.5 w-3.5" :stroke-width="2" /></button>
+                  <button class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', f)"><Trash2 class="h-3.5 w-3.5" :stroke-width="2" /></button>
+                </div>
+              </div>
             </template>
           </draggable>
 
-          <!-- Grid View for Folders -->
+          <!-- Grid View -->
           <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
-            <BookmarkCard
-              v-for="folder in orderedFolders"
-              :key="folder.id"
-              :node="folder"
-              @click="$emit('select-folder', folder.id)"
-              @edit="(n) => $emit('edit', n)"
-              @delete="(n) => $emit('delete', n)"
-              @contextmenu="(payload) => $emit('contextmenu', payload)"
-            />
+            <template v-for="f in orderedFolders" :key="f.id">
+                <div class="relative rounded-xl border border-slate-200 bg-white transition-all hover:border-slate-300 hover:shadow-md group" @click="$emit('select-folder', f.id)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: f, x: e.clientX, y: e.clientY })">
+                  <div class="absolute right-1.5 top-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-0.5 rounded-md border border-slate-200 shadow-sm z-[1]">
+                    <button class="inline-flex items-center justify-center h-6 w-6 rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', f)"><Pencil class="h-3 w-3" :stroke-width="2.25" /></button>
+                    <button class="inline-flex items-center justify-center h-6 w-6 rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', f)"><Trash2 class="h-3 w-3" :stroke-width="2.25" /></button>
+                  </div>
+                  <div class="flex flex-col items-center gap-2 px-3 py-4 text-center cursor-pointer">
+                    <BookmarkNodeIcon :node="f" size="lg" />
+                    <div class="w-full min-w-0 overflow-hidden">
+                      <span class="block truncate text-[13px] font-medium text-slate-800">{{ f.title }}</span>
+                      <span class="mt-0.5 block truncate text-[11px] text-slate-400">{{ folderStats(f) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
           </div>
         </section>
 
-        <!-- BOOKMARKS section -->
+        <!-- ========== BOOKMARKS SECTION ========== -->
         <section v-if="bookmarks.length > 0">
           <div class="mb-2 flex items-center gap-2">
             <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">书签</span>
             <span class="text-[11px] text-slate-300">{{ bookmarks.length }}</span>
           </div>
 
-          <!-- List View for Bookmarks -->
-          <draggable
-            v-if="viewMode === 'list'"
-            v-model="localBookmarks"
-            item-key="id"
-            class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white"
-            handle=".drag-handle"
-            ghost-class="opacity-30"
-            :animation="200"
-            @change="onBookmarkDragEnd"
-          >
-            <template #item="{ element: bookmark }">
-              <BookmarkRow
-                :node="bookmark"
-                @click="$emit('open-bookmark', bookmark)"
-                @edit="(n) => $emit('edit', n)"
-                @delete="(n) => $emit('delete', n)"
-                @contextmenu="(payload) => $emit('contextmenu', payload)"
-              />
+          <!-- List View -->
+          <draggable v-if="viewMode === 'list'" v-model="localBookmarks" item-key="id" class="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="onBookmarkDragEnd">
+            <template #item="{ element: b }">
+              <div class="flex items-center gap-2.5 h-10 px-3 bg-white cursor-pointer transition-colors relative hover:bg-slate-50 group" draggable="true" @click="$emit('open-bookmark', b)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: b, x: e.clientX, y: e.clientY })" @dragstart="(e) => { e.dataTransfer!.setData('text/plain', b.id); e.dataTransfer!.effectAllowed = 'move'; }">
+                <span class="flex items-center justify-center w-5 h-5 flex-shrink-0 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 transition-opacity group-hover:opacity-100 drag-handle">
+                  <GripVertical class="h-4 w-4" :stroke-width="2" />
+                </span>
+                <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded">
+                  <BookmarkNodeIcon :node="b" size="sm" />
+                </span>
+                <div class="min-w-0 flex-1">
+                  <span class="block truncate text-[13px] font-medium text-slate-800">{{ b.title }}</span>
+                  <span class="block truncate text-[12px] text-slate-400">{{ cleanUrl(b.url || '') }}</span>
+                </div>
+                <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity absolute right-2 top-1/2 -translate-y-1/2 bg-white p-0.5 rounded-md border border-slate-200 shadow-sm">
+                  <button class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', b)"><Pencil class="h-3.5 w-3.5" :stroke-width="2" /></button>
+                  <button class="inline-flex items-center justify-center h-[26px] w-[26px] rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', b)"><Trash2 class="h-3.5 w-3.5" :stroke-width="2" /></button>
+                </div>
+              </div>
             </template>
           </draggable>
 
-          <!-- Grid View for Bookmarks -->
+          <!-- Grid View -->
           <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
-            <BookmarkCard
-              v-for="bookmark in orderedBookmarks"
-              :key="bookmark.id"
-              :node="bookmark"
-              @click="$emit('open-bookmark', bookmark)"
-              @edit="(n) => $emit('edit', n)"
-              @delete="(n) => $emit('delete', n)"
-              @contextmenu="(payload) => $emit('contextmenu', payload)"
-            />
+            <template v-for="b in orderedBookmarks" :key="b.id">
+                <div class="relative rounded-xl border border-slate-200 bg-white transition-all hover:border-slate-300 hover:shadow-md group" @click="$emit('open-bookmark', b)" @contextmenu.prevent="(e) => $emit('contextmenu', { node: b, x: e.clientX, y: e.clientY })">
+                  <div class="absolute right-1.5 top-1.5 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-0.5 rounded-md border border-slate-200 shadow-sm z-[1]">
+                    <button class="inline-flex items-center justify-center h-6 w-6 rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100" title="编辑" @click.stop="$emit('edit', b)"><Pencil class="h-3 w-3" :stroke-width="2.25" /></button>
+                    <button class="inline-flex items-center justify-center h-6 w-6 rounded-[5px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-red-50 hover:text-red-500" title="删除" @click.stop="$emit('delete', b)"><Trash2 class="h-3 w-3" :stroke-width="2.25" /></button>
+                  </div>
+                  <div class="flex flex-col items-center gap-2 px-3 py-4 text-center cursor-pointer">
+                    <BookmarkNodeIcon :node="b" size="lg" />
+                    <div class="w-full min-w-0 overflow-hidden">
+                      <span class="block truncate text-[13px] font-medium text-slate-800">{{ b.title }}</span>
+                      <span v-if="b.url" class="mt-0.5 block truncate text-[11px] text-slate-400">{{ cleanUrl(b.url) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </template>
           </div>
         </section>
       </template>
@@ -203,18 +184,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
-import {
-  AlignJustify,
-  FolderPlus,
-  Inbox,
-  LayoutGrid,
-  LibraryBig,
-  Plus
-} from 'lucide-vue-next';
+import { AlignJustify, ChevronRight, Folder, FolderPlus, GripVertical, Inbox, LayoutGrid, LibraryBig, Pencil, Plus, Trash2 } from 'lucide-vue-next';
 import Breadcrumb from './Breadcrumb.vue';
-import FolderRow from './FolderRow.vue';
-import BookmarkRow from './BookmarkRow.vue';
-import BookmarkCard from './BookmarkCard.vue';
+import BookmarkNodeIcon from './BookmarkNodeIcon.vue';
 import type { BookmarkNode, ViewMode } from '../types/bookmark';
 
 const props = defineProps<{
@@ -238,83 +210,48 @@ const emit = defineEmits<{
 }>();
 
 function findNodeById(id: string, nodes: BookmarkNode[] = props.tree): BookmarkNode | null {
-  for (const node of nodes) {
-    if (node.id === id) return node;
-    const found = findNodeById(id, node.children);
-    if (found) return found;
-  }
+  for (const node of nodes) { if (node.id === id) return node; const f = findNodeById(id, node.children); if (f) return f; }
   return null;
 }
 
-const children = computed(() => {
-  if (!props.selectedFolderId) {
-    return props.tree;
-  }
-  const folder = findNodeById(props.selectedFolderId);
-  return folder ? folder.children : [];
-});
-
-const folders = computed(() =>
-  children.value.filter((n) => n.type === 'folder')
-);
-
-const bookmarks = computed(() =>
-  children.value.filter((n) => n.type === 'bookmark')
-);
-
-const orderedFolders = computed(() =>
-  [...folders.value].sort((a, b) => a.sort_order - b.sort_order)
-);
-
-const orderedBookmarks = computed(() =>
-  [...bookmarks.value].sort((a, b) => a.sort_order - b.sort_order)
-);
-
+const children = computed(() => !props.selectedFolderId ? props.tree : (findNodeById(props.selectedFolderId)?.children ?? []));
+const folders = computed(() => children.value.filter(n => n.type === 'folder'));
+const bookmarks = computed(() => children.value.filter(n => n.type === 'bookmark'));
+const orderedFolders = computed(() => [...folders.value].sort((a, b) => a.sort_order - b.sort_order));
+const orderedBookmarks = computed(() => [...bookmarks.value].sort((a, b) => a.sort_order - b.sort_order));
 const folderCount = computed(() => folders.value.length);
 const bookmarkCount = computed(() => bookmarks.value.length);
 
-const currentFolderTitle = computed(() => {
-  if (!props.selectedFolderId) return '全部书签';
-  const folder = findNodeById(props.selectedFolderId);
-  return folder ? folder.title : '全部书签';
-});
+const currentFolderTitle = computed(() => !props.selectedFolderId ? '全部书签' : (findNodeById(props.selectedFolderId)?.title ?? '全部书签'));
 
 const breadcrumbPath = computed(() => {
   if (!props.selectedFolderId) return [];
-
-  function findPath(
-    id: string,
-    nodes: BookmarkNode[],
-    path: BookmarkNode[] = []
-  ): BookmarkNode[] | null {
-    for (const node of nodes) {
-      if (node.type !== 'folder') continue;
-      if (node.id === id) return [...path, node];
-      const found = findPath(id, node.children, [...path, node]);
-      if (found) return found;
-    }
+  function walk(id: string, nodes: BookmarkNode[], path: BookmarkNode[] = []): BookmarkNode[] | null {
+    for (const n of nodes) { if (n.type !== 'folder') continue; if (n.id === id) return [...path, n]; const r = walk(id, n.children, [...path, n]); if (r) return r; }
     return null;
   }
-
-  return findPath(props.selectedFolderId, props.tree) ?? [];
+  return walk(props.selectedFolderId, props.tree) ?? [];
 });
 
 // --- Draggable local state ---
 const localFolders = ref<BookmarkNode[]>([...orderedFolders.value]);
 const localBookmarks = ref<BookmarkNode[]>([...orderedBookmarks.value]);
-
-watch(orderedFolders, (val) => { localFolders.value = [...val]; });
-watch(orderedBookmarks, (val) => { localBookmarks.value = [...val]; });
+watch(orderedFolders, v => { localFolders.value = [...v]; });
+watch(orderedBookmarks, v => { localBookmarks.value = [...v]; });
 
 function onFolderDragEnd() {
-  const folderIds = localFolders.value.map((n) => n.id);
-  const bookmarkIds = orderedBookmarks.value.map((n) => n.id);
-  emit('reorder', props.selectedFolderId, [...folderIds, ...bookmarkIds]);
+  emit('reorder', props.selectedFolderId, [...localFolders.value.map(n => n.id), ...orderedBookmarks.value.map(n => n.id)]);
+}
+function onBookmarkDragEnd() {
+  emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...localBookmarks.value.map(n => n.id)]);
 }
 
-function onBookmarkDragEnd() {
-  const folderIds = orderedFolders.value.map((n) => n.id);
-  const bookmarkIds = localBookmarks.value.map((n) => n.id);
-  emit('reorder', props.selectedFolderId, [...folderIds, ...bookmarkIds]);
+// --- Shared helpers ---
+function cleanUrl(url: string): string { try { const u = new URL(url); return u.host + u.pathname.replace(/\/$/, ''); } catch { return url; } }
+function folderStats(node: BookmarkNode): string {
+  let bms = 0, flds = 0;
+  for (const c of node.children) { if (c.type === 'bookmark') bms++; else flds++; }
+  const p: string[] = []; if (bms > 0) p.push(`${bms} 书签`); if (flds > 0) p.push(`${flds} 子文件夹`);
+  return p.join(' · ') || '空';
 }
 </script>

@@ -24,13 +24,19 @@
     />
 
     <!-- Context Menu -->
-    <ContextMenu
-      :visible="contextMenuVisible"
-      :x="contextMenuX"
-      :y="contextMenuY"
-      :items="contextMenuItems"
-      @close="contextMenuVisible = false"
-    />
+    <Teleport to="body">
+      <div v-if="contextMenuVisible" class="fixed inset-0 z-[9998]" @click="contextMenuVisible = false" @contextmenu.prevent="contextMenuVisible = false" />
+      <div v-if="contextMenuVisible" class="fixed z-[9999] min-w-[160px] p-1 bg-white border border-slate-200 rounded-[10px] shadow-[0_8px_30px_rgba(15,23,42,0.12)] flex flex-col" :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }" @click.stop>
+        <template v-for="(item, index) in contextMenuItems" :key="index">
+          <div v-if="item.separator" class="h-px bg-slate-200 mx-2 my-1" />
+          <button class="flex items-center gap-2 px-2.5 py-[7px] border-none bg-transparent rounded-[7px] text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100" :class="{ 'text-red-500 hover:bg-red-50': item.danger }" @click="item.action(); contextMenuVisible = false">
+            <component :is="item.icon" v-if="item.icon" class="h-3.5 w-3.5" :stroke-width="2" />
+            <span class="flex-1 text-left">{{ item.label }}</span>
+            <span v-if="item.shortcut" class="text-[11px] text-slate-400">{{ item.shortcut }}</span>
+          </button>
+        </template>
+      </div>
+    </Teleport>
 
     <!-- Bookmark Form Modal -->
     <BookmarkFormModal
@@ -110,13 +116,12 @@ import {
 } from './api/bookmarks';
 import MainLayout from './components/MainLayout.vue';
 import BookmarkFormModal from './components/BookmarkFormModal.vue';
-import ContextMenu from './components/ContextMenu.vue';
 import FolderTreeSelect from './components/FolderTreeSelect.vue';
 import ExportModal from './components/ExportModal.vue';
 import { useSidebarState } from './composables/useSidebarState';
 import { useKeyboard } from './composables/useKeyboard';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType, ViewMode } from './types/bookmark';
-import type { ContextMenuItem } from './components/ContextMenu.vue';
+interface MenuItem { label: string; icon?: any; shortcut?: string; danger?: boolean; separator?: boolean; action: () => void; }
 
 // --- Tree state ---
 const tree = ref<BookmarkNode[]>([]);
@@ -304,11 +309,11 @@ const contextMenuX = ref(0);
 const contextMenuY = ref(0);
 const contextMenuNode = ref<BookmarkNode | null>(null);
 
-const contextMenuItems = computed<ContextMenuItem[]>(() => {
+const contextMenuItems = computed<MenuItem[]>(() => {
   const node = contextMenuNode.value;
   if (!node) return [];
 
-  const items: ContextMenuItem[] = [
+  const items: MenuItem[] = [
     {
       label: '重命名',
       icon: Pencil,

@@ -19,7 +19,7 @@
           :tree="tree"
           :selected-id="selectedFolderId"
           @select="(id) => $emit('select-folder', id)"
-          @toggle="(id: string) => $emit('toggle-sidebar', id)"
+          @toggle="(id) => $emit('toggle-sidebar', id)"
           @contextmenu="(payload) => $emit('contextmenu', payload)"
         />
       </div>
