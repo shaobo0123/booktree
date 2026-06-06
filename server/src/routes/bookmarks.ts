@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
 import { prisma } from '../db.js';
+import { optionalAuth, requireAuth, verifyToken } from '../auth.js';
 import {
   createBookmark,
   exportBookmarkHtmlByRoot,
@@ -28,31 +29,35 @@ const createSchema = z.object({
   type: z.enum(['folder', 'bookmark']),
   url: z.string().nullable().optional(),
   parent_id: z.string().nullable().optional(),
-  sort_order: z.number().int().optional()
+  sort_order: z.number().int().optional(),
+  read_permission: z.enum(['public', 'private']).optional()
 });
 
 const updateSchema = z.object({
   title: z.string().optional(),
   url: z.string().nullable().optional(),
   parent_id: z.string().nullable().optional(),
-  sort_order: z.number().int().optional()
+  sort_order: z.number().int().optional(),
+  read_permission: z.enum(['public', 'private']).optional()
 });
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Unexpected server error';
 }
 
-router.get('/tree', async (_req, res) => {
+// --- Read-only routes (no auth required, but filtered when not logged in) ---
+
+router.get('/tree', optionalAuth, async (req, res) => {
   try {
-    res.json(await getBookmarkTree());
+    res.json(await getBookmarkTree(!!req.user));
   } catch (error) {
     res.status(500).json({ error: errorMessage(error) });
   }
 });
 
-router.get('/search', async (req, res) => {
+router.get('/search', optionalAuth, async (req, res) => {
   try {
-    res.json(await searchBookmarks(String(req.query.q ?? '')));
+    res.json(await searchBookmarks(String(req.query.q ?? ''), !!req.user));
   } catch (error) {
     res.status(500).json({ error: errorMessage(error) });
   }
@@ -66,7 +71,9 @@ router.get('/:id/favicon', async (req, res) => {
   }
 });
 
-router.put('/reorder', async (req, res) => {
+// --- Write routes (auth required) ---
+
+router.put('/reorder', requireAuth, async (req, res) => {
   try {
     const payload = reorderSchema.parse(req.body);
     await reorderBookmarks(payload.parent_id, payload.ordered_ids);
@@ -76,7 +83,7 @@ router.put('/reorder', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const payload = createSchema.parse(req.body);
     res.status(201).json(await createBookmark(payload));
@@ -85,7 +92,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const payload = updateSchema.parse(req.body);
     res.json(await updateBookmark(req.params.id, payload));
@@ -94,7 +101,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, async (req, res) => {
   try {
     await removeBookmark(req.params.id);
     res.status(204).send();
@@ -103,7 +110,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-router.post('/import', upload.single('file'), async (req, res) => {
+router.post('/import', requireAuth, upload.single('file'), async (req, res) => {
   try {
     const html =
       req.file?.buffer.toString('utf8') ??
@@ -121,7 +128,7 @@ router.post('/import', upload.single('file'), async (req, res) => {
   }
 });
 
-router.post('/clear-favicons', async (_req, res) => {
+router.post('/clear-favicons', requireAuth, async (_req, res) => {
   try {
     await prisma.bookmark.updateMany({
       data: { faviconBase64: null, faviconMime: null, faviconExpiresAt: null, iconFailedAt: null }
@@ -134,8 +141,24 @@ router.post('/clear-favicons', async (_req, res) => {
 
 router.get('/export', async (req, res) => {
   try {
+    // Support token via query param (for file download) or Authorization header
+    let isAuth = false;
+    const header = req.headers.authorization;
+    if (header && header.startsWith('Bearer ')) {
+      const payload = verifyToken(header.slice(7));
+      if (payload) { req.user = payload; isAuth = true; }
+    }
+    if (!isAuth && typeof req.query.token === 'string') {
+      const payload = verifyToken(req.query.token);
+      if (payload) { req.user = payload; isAuth = true; }
+    }
+    if (!isAuth) {
+      res.status(401).json({ error: '请先登录' });
+      return;
+    }
+
     const rootId = typeof req.query.root_id === 'string' && req.query.root_id.trim() ? req.query.root_id.trim() : null;
-    const html = await exportBookmarkHtmlByRoot(rootId);
+    const html = await exportBookmarkHtmlByRoot(rootId, true);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="tree-bookmarks.html"');
     res.send(html);

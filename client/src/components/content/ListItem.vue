@@ -7,7 +7,7 @@
     @contextmenu.prevent="(e) => $emit('contextmenu', { node, x: e.clientX, y: e.clientY })"
     @dragstart="(e) => { e.dataTransfer!.setData('text/plain', node.id); e.dataTransfer!.effectAllowed = 'move'; }"
   >
-    <span class="absolute left-0 top-1/2 -translate-y-1/2 text-slate-300 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity drag-handle">
+    <span v-if="draggable !== false" class="absolute left-0 top-1/2 -translate-y-1/2 text-slate-300 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity drag-handle">
       <GripVertical class="h-4 w-4" :stroke-width="1.5" />
     </span>
     <Folder v-if="node.type === 'folder'" class="h-6 w-6 flex-shrink-0 text-amber-500" :stroke-width="2" />
@@ -27,6 +27,6 @@ import { ChevronRight, Folder, GripVertical } from 'lucide-vue-next';
 import BookmarkNodeIcon from '../shared/BookmarkNodeIcon.vue';
 import type { BookmarkNode } from '../../types/bookmark';
 
-defineProps<{ node: BookmarkNode; subtitle: string }>();
+defineProps<{ node: BookmarkNode; subtitle: string; draggable?: boolean }>();
 defineEmits<{ click: []; contextmenu: [payload: { node: BookmarkNode; x: number; y: number }] }>();
 </script>

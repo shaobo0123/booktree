@@ -33,6 +33,14 @@
             <input v-model.trim="form.url" class="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:shadow-[0_0_0_3px_rgba(16,185,129,0.1)] disabled:bg-slate-50 disabled:text-slate-500" placeholder="https://example.com" type="url" />
           </label>
 
+          <label class="grid gap-1.5 text-sm font-medium text-slate-700">
+            <span>阅读权限</span>
+            <select v-model="form.readPermission" class="h-10 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition-all focus:border-emerald-400 focus:shadow-[0_0_0_3px_rgba(16,185,129,0.1)]">
+              <option value="public">公开（所有人可见）</option>
+              <option value="private">私有（仅登录后可见）</option>
+            </select>
+          </label>
+
         </div>
 
         <div class="flex items-center justify-between gap-2 border-t border-slate-100 px-6 py-4">
@@ -54,7 +62,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
 import { Trash2, X } from 'lucide-vue-next';
-import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from '../../types/bookmark';
+import type { BookmarkFormPayload, BookmarkNode, BookmarkType, ReadPermission } from '../../types/bookmark';
 
 const props = defineProps<{
   title: string;
@@ -74,12 +82,14 @@ interface BookmarkFormState {
   title: string;
   type: BookmarkType;
   url: string;
+  readPermission: ReadPermission;
 }
 
 const form = reactive<BookmarkFormState>({
   title: '',
   type: 'folder',
-  url: ''
+  url: '',
+  readPermission: 'public'
 });
 
 watch(
@@ -88,6 +98,7 @@ watch(
     form.title = props.initial?.title ?? '';
     form.type = props.initial?.type ?? props.defaultType;
     form.url = props.initial?.url ?? '';
+    form.readPermission = props.initial?.read_permission ?? 'public';
   },
   { immediate: true }
 );
@@ -97,7 +108,8 @@ function handleSubmit() {
     title: form.title,
     type: form.type,
     url: form.type === 'bookmark' ? form.url : null,
-    parent_id: props.initial?.parent_id ?? props.defaultParentId
+    parent_id: props.initial?.parent_id ?? props.defaultParentId,
+    read_permission: form.readPermission
   });
 }
 </script>

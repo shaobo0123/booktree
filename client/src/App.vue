@@ -8,6 +8,8 @@
       :view-mode="viewMode"
       :breadcrumb-path="breadcrumbPath"
       :search-open="searchOpen"
+      :is-logged-in="isLoggedIn"
+      :username="username"
       @select-folder="selectFolder"
       @open-bookmark="openBookmark"
       @edit="openEdit"
@@ -20,6 +22,8 @@
       @import="handleImport"
       @toggle-sidebar="toggleSidebarExpanded"
       @clear-favicons="handleClearFavicons"
+      @login="handleOpenLoginModal"
+      @logout="handleLogout"
       @update:searchOpen="(val: boolean) => searchOpen = val"
       @update:viewMode="(mode: ViewMode) => viewMode = mode"
     />
@@ -89,7 +93,14 @@
       @export="handleExport"
     />
 
-    <!-- Inline create inputs are handled via modal now, so no changes needed -->
+    <!-- Login Modal -->
+    <LoginModal
+      v-if="loginModalOpen"
+      :error="loginError"
+      :loading="loginLoading"
+      @close="closeLoginModal"
+      @login="handleLogin"
+    />
   </div>
 </template>
 
@@ -100,6 +111,8 @@ import {
   Copy,
   ExternalLink,
   FolderInput,
+  LogIn,
+  LogOut,
   Pencil,
   Trash2,
   X
@@ -118,6 +131,8 @@ import MainLayout from './components/layout/MainLayout.vue';
 import BookmarkFormModal from './components/modal/BookmarkFormModal.vue';
 import FolderTreeSelect from './components/modal/FolderTreeSelect.vue';
 import ExportModal from './components/modal/ExportModal.vue';
+import LoginModal from './components/modal/LoginModal.vue';
+import { useAuth } from './composables/useAuth';
 import { useSidebarState } from './composables/useSidebarState';
 import { useKeyboard } from './composables/useKeyboard';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType, ViewMode } from './types/bookmark';
@@ -133,6 +148,11 @@ const router = useRouter();
 const selectedFolderId = ref<string | null>(route.params.id as string ?? null);
 const viewMode = ref<ViewMode>('list');
 const searchOpen = ref(false);
+
+// --- Auth ---
+const { isLoggedIn, username, loginModalOpen, initAuth, login, logout, openLoginModal, closeLoginModal } = useAuth();
+const loginLoading = ref(false);
+const loginError = ref<string | null>(null);
 
 // Sync URL ← selectedFolderId
 watch(selectedFolderId, (id) => {
@@ -196,6 +216,31 @@ async function loadTree() {
   } finally {
     loading.value = false;
   }
+}
+
+// --- Auth actions ---
+function handleOpenLoginModal() {
+  loginError.value = null;
+  openLoginModal();
+}
+
+async function handleLogin(password: string) {
+  loginLoading.value = true;
+  loginError.value = null;
+  try {
+    await login(password);
+    closeLoginModal();
+    await loadTree(); // reload tree with full permissions
+  } catch (e) {
+    loginError.value = e instanceof Error ? e.message : '登录失败';
+  } finally {
+    loginLoading.value = false;
+  }
+}
+
+async function handleLogout() {
+  logout();
+  await loadTree(); // reload tree with public-only filter
 }
 
 // --- Bookmark actions ---
@@ -289,7 +334,12 @@ function applyReorder(
       const idToChild = new Map(node.children.map((c) => [c.id, c]));
       return {
         ...node,
-        children: orderedIds.map((id) => idToChild.get(id)!).filter(Boolean)
+        children: orderedIds
+          .map((id, index) => {
+            const child = idToChild.get(id);
+            return child ? { ...child, sort_order: (index + 1) * 10 } : null;
+          })
+          .filter(Boolean) as BookmarkNode[]
       };
     }
     if (node.children.length > 0) {
@@ -304,7 +354,12 @@ async function handleReorder(parentId: string | null, orderedIds: string[]) {
     tree.value = applyReorder(tree.value, parentId, orderedIds);
   } else {
     const idToNode = new Map(tree.value.map((n) => [n.id, n]));
-    tree.value = orderedIds.map((id) => idToNode.get(id)!).filter(Boolean);
+    tree.value = orderedIds
+      .map((id, index) => {
+        const node = idToNode.get(id);
+        return node ? { ...node, sort_order: (index + 1) * 10 } : null;
+      })
+      .filter(Boolean) as BookmarkNode[];
   }
   try {
     await reorderBookmarks(parentId, orderedIds);
@@ -324,13 +379,15 @@ const contextMenuItems = computed<MenuItem[]>(() => {
   const node = contextMenuNode.value;
   if (!node) return [];
 
-  const items: MenuItem[] = [
-    {
+  const items: MenuItem[] = [];
+
+  if (isLoggedIn.value) {
+    items.push({
       label: '编辑',
       icon: Pencil,
       action: () => { if (node) openEdit(node); }
-    }
-  ];
+    });
+  }
 
   if (node.type === 'bookmark') {
     items.push({
@@ -351,24 +408,26 @@ const contextMenuItems = computed<MenuItem[]>(() => {
     });
   }
 
-  items.push({
-    label: '移动到...',
-    icon: FolderInput,
-    action: () => {
-      if (node) openMoveToModal(node);
-    }
-  });
+  if (isLoggedIn.value) {
+    items.push({
+      label: '移动到...',
+      icon: FolderInput,
+      action: () => {
+        if (node) openMoveToModal(node);
+      }
+    });
 
-  items.push({ separator: true, label: '', action: () => {} });
+    items.push({ separator: true, label: '', action: () => {} });
 
-  items.push({
-    label: '删除',
-    icon: Trash2,
-    danger: true,
-    action: () => {
-      if (node) handleDelete(node);
-    }
-  });
+    items.push({
+      label: '删除',
+      icon: Trash2,
+      danger: true,
+      action: () => {
+        if (node) handleDelete(node);
+      }
+    });
+  }
 
   return items;
 });
@@ -482,6 +541,7 @@ useKeyboard(
     {
       key: 'n',
       handler: () => {
+        if (!isLoggedIn.value) return;
         handleCreateBookmarkInline(selectedFolderId.value);
       }
     },
@@ -489,12 +549,14 @@ useKeyboard(
       key: 'N',
       shift: true,
       handler: () => {
+        if (!isLoggedIn.value) return;
         handleCreateFolderInline(selectedFolderId.value);
       }
     },
     {
       key: 'Delete',
       handler: () => {
+        if (!isLoggedIn.value) return;
         if (contextMenuNode.value) {
           handleDelete(contextMenuNode.value);
         }
@@ -514,7 +576,8 @@ useKeyboard(
 );
 
 // --- Lifecycle ---
-onMounted(() => {
+onMounted(async () => {
+  await initAuth();
   loadTree();
   window.addEventListener('bookmark-drop', handleBookmarkDrop);
 });

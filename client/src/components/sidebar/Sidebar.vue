@@ -36,7 +36,7 @@
         'shadow-[inset_0_0_0_2px_#6ee7b7] bg-emerald-50': dragOver
       }"
       :style="{ paddingLeft: `${depth! * 16 + 12}px` }"
-      draggable="true"
+      :draggable="isLoggedIn !== false"
       @click="handleClick"
       @contextmenu.prevent="handleContextMenu"
       @dragstart="onDragStart"
@@ -91,6 +91,7 @@ const props = defineProps<{
   node?: BookmarkNode;
   depth?: number;
   selectedId: string | null;
+  isLoggedIn?: boolean;
 }>();
 
 const emit = defineEmits<{

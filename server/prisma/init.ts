@@ -39,6 +39,26 @@ async function main() {
   if (!names.has('favicon_mime')) {
     await prisma.$executeRawUnsafe(`ALTER TABLE "bookmarks" ADD COLUMN "favicon_mime" TEXT`);
   }
+  if (!names.has('favicon_expires_at')) {
+    await prisma.$executeRawUnsafe(`ALTER TABLE "bookmarks" ADD COLUMN "favicon_expires_at" DATETIME`);
+  }
+  if (!names.has('icon_failed_at')) {
+    await prisma.$executeRawUnsafe(`ALTER TABLE "bookmarks" ADD COLUMN "icon_failed_at" DATETIME`);
+  }
+  if (!names.has('read_permission')) {
+    await prisma.$executeRawUnsafe(`ALTER TABLE "bookmarks" ADD COLUMN "read_permission" TEXT NOT NULL DEFAULT 'public'`);
+  }
+
+  // Create users table
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "users" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "username" TEXT NOT NULL UNIQUE,
+      "password_hash" TEXT NOT NULL,
+      "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updated_at" DATETIME NOT NULL
+    );
+  `);
 }
 
 main()

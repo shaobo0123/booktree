@@ -1,9 +1,16 @@
 import type { BookmarkFormPayload, BookmarkNode } from '../types/bookmark';
+import { getToken } from './auth';
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
     headers: {
       'Content-Type': 'application/json',
+      ...authHeaders(),
       ...(options?.headers ?? {})
     },
     ...options
@@ -36,7 +43,10 @@ export function updateBookmark(id: string, payload: Partial<BookmarkFormPayload>
 }
 
 export async function deleteBookmark(id: string) {
-  const response = await fetch(`/api/bookmarks/${id}`, { method: 'DELETE' });
+  const response = await fetch(`/api/bookmarks/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders()
+  });
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
     throw new Error(error.error ?? 'Delete failed');
@@ -53,7 +63,8 @@ export async function importBookmarks(file: File) {
 
   const response = await fetch('/api/bookmarks/import', {
     method: 'POST',
-    body: formData
+    body: formData,
+    headers: authHeaders()
   });
 
   if (!response.ok) {
@@ -72,8 +83,12 @@ export function reorderBookmarks(parentId: string | null, orderedIds: string[]) 
 }
 
 export function exportBookmarks(rootId?: string | null) {
+  const token = getToken();
   const query = rootId ? `?root_id=${encodeURIComponent(rootId)}` : '';
-  window.location.href = `/api/bookmarks/export${query}`;
+  // For file downloads, pass token as query param (can't set Authorization header)
+  const sep = query ? '&' : '?';
+  const tokenParam = token ? `${sep}token=${encodeURIComponent(token)}` : '';
+  window.location.href = `/api/bookmarks/export${query}${tokenParam}`;
 }
 
 export function clearFavicons() {

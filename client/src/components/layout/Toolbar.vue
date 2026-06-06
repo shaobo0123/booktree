@@ -29,37 +29,51 @@
       <!-- Divider -->
       <div class="mx-0.5 h-5 w-px bg-slate-200" />
 
-      <!-- New Folder -->
-      <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="新建文件夹 (Shift+N)" @click="$emit('new-folder', selectedFolderId)">
-        <FolderPlus class="h-4 w-4" :stroke-width="2" />
-      </button>
-
-      <!-- New Bookmark -->
-      <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="新建书签 (N)" @click="$emit('new-bookmark', selectedFolderId)">
-        <BookmarkPlus class="h-4 w-4" :stroke-width="2" />
-      </button>
-
-      <!-- More actions dropdown -->
-      <div class="relative">
-        <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="更多操作" @click="moreOpen = !moreOpen">
-          <MoreHorizontal class="h-4 w-4" :stroke-width="2" />
+      <!-- Auth-required actions (only when logged in) -->
+      <template v-if="isLoggedIn">
+        <!-- New Folder -->
+        <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="新建文件夹 (Shift+N)" @click="$emit('new-folder', selectedFolderId)">
+          <FolderPlus class="h-4 w-4" :stroke-width="2" />
         </button>
-        <div v-if="moreOpen" class="absolute right-0 top-full mt-1 z-20 min-w-[140px] p-1 bg-white border border-slate-200 rounded-[10px] shadow-[0_8px_30px_rgba(15,23,42,0.12)]">
-          <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100" @click="openFilePicker(); moreOpen = false">
-            <Upload class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>导入书签</span>
+
+        <!-- New Bookmark -->
+        <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="新建书签 (N)" @click="$emit('new-bookmark', selectedFolderId)">
+          <BookmarkPlus class="h-4 w-4" :stroke-width="2" />
+        </button>
+
+        <!-- More actions dropdown -->
+        <div class="relative">
+          <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="更多操作" @click="moreOpen = !moreOpen">
+            <MoreHorizontal class="h-4 w-4" :stroke-width="2" />
           </button>
-          <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100" @click="$emit('export'); moreOpen = false">
-            <Download class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>导出书签</span>
-          </button>
-          <div class="my-1 h-px bg-slate-100" />
-          <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-rose-600 cursor-pointer transition-colors hover:bg-rose-50" @click="$emit('clear-favicons'); moreOpen = false">
-            <Trash2 class="h-3.5 w-3.5" :stroke-width="2" />
-            <span>清空图标缓存</span>
-          </button>
+          <div v-if="moreOpen" class="absolute right-0 top-full mt-1 z-20 min-w-[140px] p-1 bg-white border border-slate-200 rounded-[10px] shadow-[0_8px_30px_rgba(15,23,42,0.12)]">
+            <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100" @click="openFilePicker(); moreOpen = false">
+              <Upload class="h-3.5 w-3.5" :stroke-width="2" />
+              <span>导入书签</span>
+            </button>
+            <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100" @click="$emit('export'); moreOpen = false">
+              <Download class="h-3.5 w-3.5" :stroke-width="2" />
+              <span>导出书签</span>
+            </button>
+            <div class="my-1 h-px bg-slate-100" />
+            <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-rose-600 cursor-pointer transition-colors hover:bg-rose-50" @click="$emit('clear-favicons'); moreOpen = false">
+              <Trash2 class="h-3.5 w-3.5" :stroke-width="2" />
+              <span>清空图标缓存</span>
+            </button>
+          </div>
         </div>
-      </div>
+
+        <!-- Logout button -->
+        <button class="inline-flex items-center gap-1.5 h-[30px] px-2.5 rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700 text-[13px]" title="退出登录" @click="$emit('logout')">
+          <LogOut class="h-4 w-4" :stroke-width="2" />
+        </button>
+      </template>
+
+      <!-- Login button (only when not logged in) -->
+      <button v-else class="inline-flex items-center gap-1.5 h-[30px] px-2.5 rounded-[7px] border border-emerald-200 bg-emerald-50 text-emerald-700 cursor-pointer transition-colors hover:bg-emerald-100 text-[13px] font-medium" @click="$emit('login')">
+        <LogIn class="h-4 w-4" :stroke-width="2" />
+        <span>登录</span>
+      </button>
 
       <input ref="fileInput" accept=".html,.htm,text/html" class="hidden" type="file" @change="handleFileChange" />
 
@@ -76,6 +90,8 @@ import {
   Download,
   FolderPlus,
   LibraryBig,
+  LogIn,
+  LogOut,
   MoreHorizontal,
   PanelLeft,
   Search,
@@ -90,6 +106,8 @@ defineProps<{
   breadcrumbPath: BookmarkNode[];
   selectedFolderId: string | null;
   sidebarOpen: boolean;
+  isLoggedIn: boolean;
+  username: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -101,6 +119,8 @@ const emit = defineEmits<{
   'export': [];
   'import': [file: File];
   'clear-favicons': [];
+  'login': [];
+  'logout': [];
 }>();
 
 const moreOpen = ref(false);

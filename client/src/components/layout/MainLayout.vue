@@ -5,6 +5,8 @@
       :breadcrumb-path="breadcrumbPath"
       :selected-folder-id="selectedFolderId"
       :sidebar-open="sidebarOpen"
+      :is-logged-in="isLoggedIn"
+      :username="username"
       @toggle-sidebar="sidebarOpen = !sidebarOpen"
       @export="$emit('export')"
       @import="(file) => $emit('import', file)"
@@ -12,6 +14,8 @@
       @new-folder="(parentId) => $emit('create-folder', parentId)"
       @new-bookmark="(parentId) => $emit('create-bookmark', parentId)"
       @clear-favicons="$emit('clear-favicons')"
+      @login="$emit('login')"
+      @logout="$emit('logout')"
     />
 
     <div class="flex min-h-0 flex-1 relative">
@@ -25,7 +29,7 @@
             </div>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto column-scrollbar px-1.5 pb-4">
-            <Sidebar :tree="tree" :selected-id="selectedFolderId" @select="(id) => $emit('select-folder', id)" @toggle="(id) => $emit('toggle-sidebar', id)" @contextmenu="(payload) => $emit('contextmenu', payload)" />
+            <Sidebar :tree="tree" :selected-id="selectedFolderId" :is-logged-in="isLoggedIn" @select="(id) => $emit('select-folder', id)" @toggle="(id) => $emit('toggle-sidebar', id)" @contextmenu="(payload) => $emit('contextmenu', payload)" />
           </div>
           <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-emerald-400 transition-colors" @mousedown="onResizeStart" />
       </aside>
@@ -41,7 +45,7 @@
             </div>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto column-scrollbar px-1.5 pb-4">
-            <Sidebar :tree="tree" :selected-id="selectedFolderId" @select="(id) => { $emit('select-folder', id); sidebarOpen = false; }" @toggle="(id) => $emit('toggle-sidebar', id)" @contextmenu="(payload) => $emit('contextmenu', payload)" />
+            <Sidebar :tree="tree" :selected-id="selectedFolderId" :is-logged-in="isLoggedIn" @select="(id) => { $emit('select-folder', id); sidebarOpen = false; }" @toggle="(id) => $emit('toggle-sidebar', id)" @contextmenu="(payload) => $emit('contextmenu', payload)" />
           </div>
         </aside>
       </Transition>
@@ -68,6 +72,7 @@
 
         <ContentArea
           :tree="tree" :loading="loading" :error="error" :selected-folder-id="selectedFolderId" :view-mode="viewMode"
+          :is-logged-in="isLoggedIn"
           @select-folder="(id) => { $emit('select-folder', id); if (!sidebarPinned) sidebarOpen = false; }"
           @open-bookmark="(node) => $emit('open-bookmark', node)"
           @edit="(node) => $emit('edit', node)"
@@ -106,6 +111,7 @@ defineProps<{
   tree: BookmarkNode[]; loading: boolean; error: string | null;
   selectedFolderId: string | null; viewMode: ViewMode;
   breadcrumbPath: BookmarkNode[]; searchOpen: boolean;
+  isLoggedIn: boolean; username: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -115,6 +121,7 @@ const emit = defineEmits<{
   'create-folder': [parentId: string | null]; 'create-bookmark': [parentId: string | null];
   'contextmenu': [payload: { node: BookmarkNode; x: number; y: number }];
   'export': []; 'import': [file: File]; 'toggle-sidebar': [id: string]; 'clear-favicons': [];
+  'login': []; 'logout': [];
   'update:searchOpen': [value: boolean]; 'update:viewMode': [mode: ViewMode];
 }>();
 

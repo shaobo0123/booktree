@@ -23,15 +23,18 @@ export interface BookmarkNode {
   url: string | null;
   favicon_base64: string | null;
   favicon_mime: string | null;
+  read_permission: 'public' | 'private';
   sort_order: number; created_at: string; updated_at: string;
   children: BookmarkNode[];
 }
 
 export interface CreateBookmarkInput {
   title?: string; type: BookmarkType; url?: string | null; parent_id?: string | null; sort_order?: number;
+  read_permission?: 'public' | 'private';
 }
 export interface UpdateBookmarkInput {
   title?: string; url?: string | null; parent_id?: string | null; sort_order?: number;
+  read_permission?: 'public' | 'private';
 }
 
 function toNode(record: Bookmark): BookmarkNode {
@@ -62,6 +65,7 @@ function toNode(record: Bookmark): BookmarkNode {
     url: record.url,
     favicon_base64: faviconBase64,
     favicon_mime: faviconMime,
+    read_permission: record.readPermission as 'public' | 'private',
     sort_order: record.sortOrder, created_at: record.createdAt.toISOString(), updated_at: record.updatedAt.toISOString(),
     children: []
   };
@@ -123,7 +127,19 @@ async function isDescendant(nodeId: string, possibleDescendantId: string): Promi
   return false;
 }
 
-export async function getBookmarkTree(): Promise<BookmarkNode[]> {
+/** Recursively prune nodes that are not public — only keep branches where every node is public */
+function filterPublicOnly(nodes: BookmarkNode[]): BookmarkNode[] {
+  const result: BookmarkNode[] = [];
+  for (const n of nodes) {
+    if (n.read_permission !== 'public') continue;
+    result.push({ ...n, children: filterPublicOnly(n.children) });
+  }
+  return result;
+}
+
+export async function getBookmarkTree(isAuthenticated = false): Promise<BookmarkNode[]> {
+  // Fetch all records — building tree first, then filtering — so that a public
+  // child of a private folder is never leaked as an orphan root.
   const records = await prisma.bookmark.findMany({ orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }] });
   const byId = new Map<string, BookmarkNode>();
   const roots: BookmarkNode[] = [];
@@ -133,6 +149,9 @@ export async function getBookmarkTree(): Promise<BookmarkNode[]> {
     else roots.push(n);
   }
   sortNodes(roots);
+  if (!isAuthenticated) {
+    return filterPublicOnly(roots);
+  }
   return roots;
 }
 
@@ -200,7 +219,7 @@ export async function createBookmark(input: CreateBookmarkInput): Promise<Bookma
   if (input.type === 'folder') {
     if (!title) throw new Error('Title is required');
     const r = await prisma.bookmark.create({
-      data: { title, type: 'folder', url: null, parentId, sortOrder: input.sort_order ?? await nextSortOrder(parentId) }
+      data: { title, type: 'folder', url: null, parentId, sortOrder: input.sort_order ?? await nextSortOrder(parentId), readPermission: input.read_permission ?? 'public' }
     });
     return toNode(r);
   }
@@ -217,7 +236,8 @@ export async function createBookmark(input: CreateBookmarkInput): Promise<Bookma
       faviconExpiresAt: meta.faviconBase64 ? new Date(now.getTime() + FAVICON_SUCCESS_TTL) : null,
       iconFailedAt: meta.faviconFailed ? now : null,
       parentId,
-      sortOrder: input.sort_order ?? await nextSortOrder(parentId)
+      sortOrder: input.sort_order ?? await nextSortOrder(parentId),
+      readPermission: input.read_permission ?? 'public'
     }
   });
   return toNode(record);
@@ -262,6 +282,7 @@ export async function updateBookmark(id: string, input: UpdateBookmarkInput): Pr
       url: existing.type === 'folder' ? null : url,
       parentId: nextParentId ?? null,
       sortOrder: input.sort_order ?? existing.sortOrder,
+      readPermission: input.read_permission ?? existing.readPermission,
       ...faviconData,
     }
   });
@@ -274,14 +295,32 @@ export async function removeBookmark(id: string) {
   await prisma.$transaction(async (tx) => { await deleteNode(id, tx); });
 }
 
-export async function searchBookmarks(query: string): Promise<BookmarkNode[]> {
+export async function searchBookmarks(query: string, isAuthenticated = false): Promise<BookmarkNode[]> {
   const q = query.trim();
   if (!q) return [];
   const records = await prisma.bookmark.findMany({
     where: { type: 'bookmark', OR: [{ title: { contains: q } }, { url: { contains: q } }] },
     orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }]
   });
-  return records.map(r => toNode(r));
+  if (isAuthenticated) return records.map(r => toNode(r));
+
+  // When not authenticated, exclude bookmarks whose ancestor chain has any private node
+  const allBookmarks = await prisma.bookmark.findMany({ select: { id: true, parentId: true, readPermission: true } });
+  const permMap = new Map(allBookmarks.map(b => [b.id, { parentId: b.parentId, readPermission: b.readPermission }]));
+
+  function hasPrivateAncestor(bookmarkId: string | null): boolean {
+    while (bookmarkId) {
+      const entry = permMap.get(bookmarkId);
+      if (!entry) return false;
+      if (entry.readPermission !== 'public') return true;
+      bookmarkId = entry.parentId;
+    }
+    return false;
+  }
+
+  return records
+    .filter(r => r.readPermission === 'public' && !hasPrivateAncestor(r.parentId))
+    .map(r => toNode(r));
 }
 
 // --- Import / Export ---
@@ -311,8 +350,8 @@ export async function reorderBookmarks(parentId: string | null, orderedIds: stri
   await prisma.$transaction(orderedIds.map((id, i) => prisma.bookmark.update({ where: { id }, data: { sortOrder: (i + 1) * 10 } })));
 }
 
-export async function exportBookmarkHtmlByRoot(rootId: string | null) {
-  const tree = await getBookmarkTree();
+export async function exportBookmarkHtmlByRoot(rootId: string | null, isAuthenticated = false) {
+  const tree = await getBookmarkTree(isAuthenticated);
   if (!rootId) return createBookmarkHtml(tree);
   function find(nodes: BookmarkNode[]): BookmarkNode | null {
     for (const n of nodes) { if (n.id === rootId) return n; const c = find(n.children); if (c) return c; }

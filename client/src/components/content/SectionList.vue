@@ -6,9 +6,9 @@
     </div>
 
     <!-- List -->
-    <draggable v-if="viewMode === 'list'" v-model="local" item-key="id" class="flex flex-col gap-2" handle=".drag-handle" ghost-class="opacity-30" :animation="200" @change="$emit('reorder')">
+    <draggable v-if="viewMode === 'list'" v-model="local" item-key="id" class="flex flex-col gap-2" handle=".drag-handle" ghost-class="opacity-30" :animation="200" :disabled="!draggableEnabled" @change="onDragChange">
       <template #item="{ element: item }">
-        <ListItem :node="item" :subtitle="subtitleFn(item)" @click="$emit('click-item', item)" @contextmenu="(p) => $emit('contextmenu', p)" />
+        <ListItem :node="item" :subtitle="subtitleFn(item)" :draggable="draggableEnabled" @click="$emit('click-item', item)" @contextmenu="(p) => $emit('contextmenu', p)" />
       </template>
     </draggable>
 
@@ -20,7 +20,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 import ListItem from './ListItem.vue';
 import GridCard from './GridCard.vue';
@@ -33,10 +33,17 @@ const props = defineProps<{
   viewMode: ViewMode;
   gridMinWidth: string;
   mb?: boolean;
+  draggable?: boolean;
 }>();
 
-defineEmits<{ 'click-item': [n: BookmarkNode]; reorder: []; contextmenu: [p: { node: BookmarkNode; x: number; y: number }] }>();
+const emit = defineEmits<{ 'click-item': [n: BookmarkNode]; reorder: [orderedIds: string[]]; contextmenu: [p: { node: BookmarkNode; x: number; y: number }] }>();
+
+const draggableEnabled = computed(() => props.draggable !== false);
 
 const local = ref<BookmarkNode[]>([...props.items]);
 watch(() => props.items, v => { local.value = [...v]; });
+
+function onDragChange() {
+  emit('reorder', local.value.map(item => item.id));
+}
 </script>

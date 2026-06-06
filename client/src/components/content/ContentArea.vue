@@ -21,9 +21,9 @@
         </div>
         <div>
           <p class="text-[15px] font-semibold text-slate-700">欢迎使用 Tree Bookmarks</p>
-          <p class="mt-1.5 text-[13px] leading-relaxed text-slate-400">创建第一个文件夹来组织你的书签</p>
+          <p class="mt-1.5 text-[13px] leading-relaxed text-slate-400">{{ isLoggedIn ? '创建第一个文件夹来组织你的书签' : '请登录后开始创建书签' }}</p>
         </div>
-        <button class="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-[13px] font-medium text-white shadow-sm shadow-emerald-900/10 transition-colors hover:bg-emerald-600" @click="$emit('create-folder', null)">
+        <button v-if="isLoggedIn" class="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-500 px-4 text-[13px] font-medium text-white shadow-sm shadow-emerald-900/10 transition-colors hover:bg-emerald-600" @click="$emit('create-folder', null)">
           <FolderPlus class="h-4 w-4" :stroke-width="2" /> 创建文件夹
         </button>
       </div>
@@ -42,13 +42,16 @@
 
       <!-- Actions bar -->
       <div class="mb-5 flex items-center justify-between">
-        <div class="flex items-center gap-2">
+        <div v-if="isLoggedIn" class="flex items-center gap-2">
           <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-[13px] text-emerald-700 cursor-pointer transition-colors hover:bg-emerald-100 hover:border-emerald-300" @click="$emit('create-folder', selectedFolderId)">
             <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建文件夹</span>
           </button>
           <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-slate-200 bg-white text-[13px] text-slate-600 cursor-pointer transition-colors hover:bg-slate-50 hover:border-slate-300" @click="$emit('create-bookmark', selectedFolderId)">
             <Plus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建书签</span>
           </button>
+        </div>
+        <div v-else class="flex items-center gap-2">
+          <span class="text-[13px] text-slate-400">只读模式</span>
         </div>
         <div class="flex items-center gap-2">
           <div class="flex rounded-lg border border-slate-200 bg-white p-0.5">
@@ -69,7 +72,7 @@
         </div>
         <p class="mt-3 text-sm font-medium text-slate-500">此文件夹为空</p>
         <p class="mt-1 text-xs text-slate-400">添加文件夹或书签来填充它</p>
-        <div class="mt-4 flex items-center justify-center gap-2">
+        <div v-if="isLoggedIn" class="mt-4 flex items-center justify-center gap-2">
           <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-[13px] text-emerald-700 cursor-pointer transition-colors hover:bg-emerald-100 hover:border-emerald-300" @click="$emit('create-folder', selectedFolderId)">
             <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建文件夹</span>
           </button>
@@ -80,9 +83,9 @@
       </div>
 
       <template v-else>
-        <SectionList v-if="orderedFolders.length > 0" :items="orderedFolders" label="文件夹" :subtitle-fn="folderStats" :view-mode="viewMode" grid-min-width="200px" mb
+        <SectionList v-if="orderedFolders.length > 0" :items="orderedFolders" label="文件夹" :subtitle-fn="folderStats" :view-mode="viewMode" grid-min-width="200px" mb :draggable="isLoggedIn"
           @click-item="(f) => $emit('select-folder', f.id)" @reorder="onFolderDragEnd" @contextmenu="(p) => $emit('contextmenu', p)" />
-        <SectionList v-if="orderedBookmarks.length > 0" :items="orderedBookmarks" label="书签" :subtitle-fn="(b) => cleanUrl(b.url || '')" :view-mode="viewMode" grid-min-width="180px"
+        <SectionList v-if="orderedBookmarks.length > 0" :items="orderedBookmarks" label="书签" :subtitle-fn="(b) => cleanUrl(b.url || '')" :view-mode="viewMode" grid-min-width="180px" :draggable="isLoggedIn"
           @click-item="(b) => $emit('open-bookmark', b)" @reorder="onBookmarkDragEnd" @contextmenu="(p) => $emit('contextmenu', p)" />
       </template>
     </div>
@@ -102,6 +105,7 @@ const props = defineProps<{
   error: string | null;
   selectedFolderId: string | null;
   viewMode: ViewMode;
+  isLoggedIn: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -140,11 +144,15 @@ const breadcrumbPath = computed(() => {
   return walk(props.selectedFolderId, props.tree) ?? [];
 });
 
-function onFolderDragEnd() {
-  emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...orderedBookmarks.value.map(n => n.id)]);
+function onFolderDragEnd(orderedIds: string[]) {
+  if (!props.isLoggedIn) return;
+  // Combine new folder order with unchanged bookmark order
+  emit('reorder', props.selectedFolderId, [...orderedIds, ...orderedBookmarks.value.map(n => n.id)]);
 }
-function onBookmarkDragEnd() {
-  emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...orderedBookmarks.value.map(n => n.id)]);
+function onBookmarkDragEnd(orderedIds: string[]) {
+  if (!props.isLoggedIn) return;
+  // Combine unchanged folder order with new bookmark order
+  emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...orderedIds]);
 }
 
 // --- Shared helpers ---
