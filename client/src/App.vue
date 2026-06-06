@@ -1,52 +1,38 @@
 <template>
   <div class="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
-    <Toolbar
-      v-model:query="searchQuery"
-      @create-root="openCreateRoot"
+    <MainLayout
+      :tree="tree"
+      :loading="loading"
+      :error="loadError"
+      :selected-folder-id="selectedFolderId"
+      :view-mode="viewMode"
+      :breadcrumb-path="breadcrumbPath"
+      :search-open="searchOpen"
+      @select-folder="selectFolder"
+      @open-bookmark="openBookmark"
+      @edit="openEdit"
+      @delete="handleDelete"
+      @reorder="handleReorder"
+      @create-folder="handleCreateFolderInline"
+      @create-bookmark="handleCreateBookmarkInline"
+      @contextmenu="handleContextMenu"
       @export="openExportModal"
       @import="handleImport"
+      @toggle-sidebar="toggleSidebarExpanded"
+      @update:searchOpen="(val: boolean) => searchOpen = val"
+      @update:viewMode="(mode: ViewMode) => viewMode = mode"
     />
 
-    <!-- Search Results -->
-    <section v-if="searchQuery.trim()" class="border-b border-slate-100 bg-white px-5 py-3">
-      <div class="mb-2.5 flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-slate-800">搜索结果</h2>
-        <span class="text-xs text-slate-400">{{ searchLoading ? '搜索中...' : `${searchResults.length} 项` }}</span>
-      </div>
-      <div v-if="searchError" class="text-sm text-rose-500">{{ searchError }}</div>
-      <div v-else-if="!searchLoading && searchResults.length === 0" class="py-3 text-center text-sm text-slate-400">
-        没有匹配的书签
-      </div>
-      <div v-else class="grid max-h-44 gap-2 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-        <button
-          v-for="result in searchResults"
-          :key="result.id"
-          class="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/50 px-3.5 py-2.5 text-left transition-all hover:border-emerald-200 hover:bg-emerald-50/60 hover:shadow-sm"
-          type="button"
-          @click="openBookmark(result)"
-        >
-          <BookmarkNodeIcon :node="result" />
-          <span class="min-w-0 flex-1">
-            <span class="block truncate text-[13px] font-medium text-slate-800">{{ result.title }}</span>
-            <span class="block truncate text-xs text-slate-400">{{ result.url }}</span>
-          </span>
-        </button>
-      </div>
-    </section>
-
-    <ColumnTree
-      :error="loadError"
-      :loading="loading"
-      :tree="tree"
-      @create-bookmark="handleCreateBookmark"
-      @create-folder="handleCreateFolder"
-      @delete="handleDelete"
-      @edit="openEdit"
-      @open="openBookmark"
-      @reorder="handleReorder"
+    <!-- Context Menu -->
+    <ContextMenu
+      :visible="contextMenuVisible"
+      :x="contextMenuX"
+      :y="contextMenuY"
+      :items="contextMenuItems"
+      @close="contextMenuVisible = false"
     />
 
-    <!-- Modal for root-level create and all edits -->
+    <!-- Bookmark Form Modal -->
     <BookmarkFormModal
       v-if="modalOpen"
       :default-parent-id="modalDefaultParentId"
@@ -60,6 +46,35 @@
       @save="handleSave"
     />
 
+    <!-- Move To Modal -->
+    <Teleport to="body">
+      <div v-if="moveToModalVisible" class="modal-backdrop" @click.self="closeMoveToModal">
+        <div class="modal-panel">
+          <div class="flex items-center justify-between px-6 py-4">
+            <h2 class="text-base font-semibold text-slate-900">移动到...</h2>
+            <button class="icon-btn" type="button" @click="closeMoveToModal">
+              <X class="h-4 w-4" />
+            </button>
+          </div>
+          <div class="px-6 pb-6">
+            <FolderTreeSelect
+              :model-value="null"
+              :tree="tree"
+              :block-folder-id="moveToNode?.type === 'folder' ? moveToNode.id : null"
+              empty-text="暂无可选文件夹"
+              list-height="320px"
+              root-description="移动到根级"
+              root-label="根级"
+              searchable
+              variant="panel"
+              @update:model-value="handleMoveTo"
+            />
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Export Modal -->
     <ExportModal
       v-if="exportModalOpen"
       :default-root-id="null"
@@ -67,11 +82,22 @@
       @close="closeExportModal"
       @export="handleExport"
     />
+
+    <!-- Inline create inputs are handled via modal now, so no changes needed -->
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import {
+  Copy,
+  ExternalLink,
+  FolderInput,
+  Link2,
+  Pencil,
+  Trash2,
+  X
+} from 'lucide-vue-next';
 import {
   createBookmark,
   deleteBookmark,
@@ -80,33 +106,59 @@ import {
   importBookmarks,
   refreshBookmarkIcon,
   reorderBookmarks,
-  searchBookmarks,
   updateBookmark
 } from './api/bookmarks';
-import BookmarkNodeIcon from './components/BookmarkNodeIcon.vue';
+import MainLayout from './components/MainLayout.vue';
 import BookmarkFormModal from './components/BookmarkFormModal.vue';
-import ColumnTree from './components/ColumnTree.vue';
+import ContextMenu from './components/ContextMenu.vue';
+import FolderTreeSelect from './components/FolderTreeSelect.vue';
 import ExportModal from './components/ExportModal.vue';
-import Toolbar from './components/Toolbar.vue';
-import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from './types/bookmark';
+import { useSidebarState } from './composables/useSidebarState';
+import { useKeyboard } from './composables/useKeyboard';
+import type { BookmarkFormPayload, BookmarkNode, BookmarkType, ViewMode } from './types/bookmark';
+import type { ContextMenuItem } from './components/ContextMenu.vue';
 
+// --- Tree state ---
 const tree = ref<BookmarkNode[]>([]);
 const loading = ref(false);
 const loadError = ref<string | null>(null);
-const modalOpen = ref(false);
-const modalTitle = ref('新增');
-const modalDefaultType = ref<BookmarkType>('folder');
-const modalDefaultParentId = ref<string | null>(null);
-const modalShowContextFields = ref(true);
-const editingNode = ref<BookmarkNode | null>(null);
-const exportModalOpen = ref(false);
-const searchQuery = ref('');
-const searchResults = ref<BookmarkNode[]>([]);
-const searchLoading = ref(false);
-const searchError = ref<string | null>(null);
-let searchTimer: number | undefined;
-let metadataRefreshTimer: number | undefined;
+const selectedFolderId = ref<string | null>(null);
+const viewMode = ref<ViewMode>('list');
+const searchOpen = ref(false);
 
+// --- Sidebar ---
+const { toggleExpanded } = useSidebarState();
+
+function toggleSidebarExpanded(id: string) {
+  toggleExpanded(id);
+}
+
+// --- Breadcrumb ---
+const breadcrumbPath = computed(() => {
+  if (!selectedFolderId.value) return [];
+
+  function findPath(
+    id: string,
+    nodes: BookmarkNode[],
+    path: BookmarkNode[] = []
+  ): BookmarkNode[] | null {
+    for (const node of nodes) {
+      if (node.type !== 'folder') continue;
+      if (node.id === id) return [...path, node];
+      const found = findPath(id, node.children, [...path, node]);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  return findPath(selectedFolderId.value, tree.value) ?? [];
+});
+
+function selectFolder(id: string | null) {
+  selectedFolderId.value = id;
+}
+
+// --- Tree loading ---
 async function loadTree() {
   loading.value = true;
   loadError.value = null;
@@ -119,6 +171,7 @@ async function loadTree() {
   }
 }
 
+// --- Bookmark actions ---
 function openBookmark(node: BookmarkNode) {
   if (node.url) {
     void refreshBookmarkIcon(node.id)
@@ -131,44 +184,40 @@ function openBookmark(node: BookmarkNode) {
   }
 }
 
-// --- Root-level: modal create ---
-function openCreateRoot() {
+// --- Create ---
+function handleCreateFolderInline(parentId: string | null) {
   editingNode.value = null;
   modalDefaultType.value = 'folder';
-  modalDefaultParentId.value = null;
-  modalShowContextFields.value = true;
-  modalTitle.value = '新建环境';
+  modalDefaultParentId.value = parentId ?? selectedFolderId.value;
+  modalShowContextFields.value = false;
+  modalTitle.value = '新建文件夹';
   modalOpen.value = true;
 }
 
-// --- Child-level: inline create via API ---
-async function handleCreateFolder(data: { parentId: string; title: string }) {
-  try {
-    await createBookmark({ type: 'folder', title: data.title, parent_id: data.parentId });
-    await loadTree();
-  } catch (error) {
-    window.alert(error instanceof Error ? error.message : '创建失败');
-  }
-}
-
-async function handleCreateBookmark(data: { parentId: string; title: string; url: string }) {
-  try {
-    await createBookmark({ type: 'bookmark', title: data.title, url: data.url || undefined, parent_id: data.parentId });
-    await loadTree();
-    window.clearTimeout(metadataRefreshTimer);
-    metadataRefreshTimer = window.setTimeout(loadTree, 3500);
-  } catch (error) {
-    window.alert(error instanceof Error ? error.message : '创建失败');
-  }
+function handleCreateBookmarkInline(parentId: string | null) {
+  editingNode.value = null;
+  modalDefaultType.value = 'bookmark';
+  modalDefaultParentId.value = parentId ?? selectedFolderId.value;
+  modalShowContextFields.value = false;
+  modalTitle.value = '新建书签';
+  modalOpen.value = true;
 }
 
 // --- Edit modal ---
+const modalOpen = ref(false);
+const modalTitle = ref('新建');
+const modalDefaultType = ref<BookmarkType>('folder');
+const modalDefaultParentId = ref<string | null>(null);
+const modalShowContextFields = ref(true);
+const editingNode = ref<BookmarkNode | null>(null);
+let metadataRefreshTimer: number | undefined;
+
 function openEdit(node: BookmarkNode) {
   editingNode.value = node;
   modalDefaultType.value = node.type;
   modalDefaultParentId.value = node.parent_id;
   modalShowContextFields.value = true;
-  modalTitle.value = '编辑书签';
+  modalTitle.value = '编辑';
   modalOpen.value = true;
 }
 
@@ -197,8 +246,12 @@ async function handleDeleteFromModal(node: BookmarkNode) {
   await handleDelete(node);
 }
 
+// --- Delete ---
 async function handleDelete(node: BookmarkNode) {
-  const message = node.type === 'folder' ? `确定删除文件夹"${node.title}"及其所有子节点吗？` : `确定删除书签"${node.title}"吗？`;
+  const message =
+    node.type === 'folder'
+      ? `确定删除文件夹"${node.title}"及其所有子节点吗？`
+      : `确定删除书签"${node.title}"吗？`;
   if (!window.confirm(message)) return;
 
   try {
@@ -209,29 +262,34 @@ async function handleDelete(node: BookmarkNode) {
   }
 }
 
-function findAndReorder(nodes: BookmarkNode[], parentId: string, orderedIds: string[]): boolean {
-  for (const node of nodes) {
+// --- Reorder ---
+function applyReorder(
+  nodes: BookmarkNode[],
+  parentId: string,
+  orderedIds: string[]
+): BookmarkNode[] {
+  return nodes.map((node) => {
     if (node.id === parentId) {
       const idToChild = new Map(node.children.map((c) => [c.id, c]));
-      node.children = orderedIds.map((id) => idToChild.get(id)!).filter(Boolean);
-      return true;
+      return {
+        ...node,
+        children: orderedIds.map((id) => idToChild.get(id)!).filter(Boolean)
+      };
     }
-    if (node.children.length > 0 && findAndReorder(node.children, parentId, orderedIds)) {
-      return true;
+    if (node.children.length > 0) {
+      return { ...node, children: applyReorder(node.children, parentId, orderedIds) };
     }
-  }
-  return false;
+    return node;
+  });
 }
 
 async function handleReorder(parentId: string | null, orderedIds: string[]) {
-  // Optimistic: update local tree immediately, no flash
   if (parentId) {
-    findAndReorder(tree.value, parentId, orderedIds);
+    tree.value = applyReorder(tree.value, parentId, orderedIds);
   } else {
     const idToNode = new Map(tree.value.map((n) => [n.id, n]));
     tree.value = orderedIds.map((id) => idToNode.get(id)!).filter(Boolean);
   }
-  // Persist in background
   try {
     await reorderBookmarks(parentId, orderedIds);
   } catch (error) {
@@ -240,15 +298,112 @@ async function handleReorder(parentId: string | null, orderedIds: string[]) {
   }
 }
 
-async function handleImport(file: File) {
+// --- Context menu ---
+const contextMenuVisible = ref(false);
+const contextMenuX = ref(0);
+const contextMenuY = ref(0);
+const contextMenuNode = ref<BookmarkNode | null>(null);
+
+const contextMenuItems = computed<ContextMenuItem[]>(() => {
+  const node = contextMenuNode.value;
+  if (!node) return [];
+
+  const items: ContextMenuItem[] = [
+    {
+      label: '重命名',
+      icon: Pencil,
+      action: () => {
+        if (node) openEdit(node);
+      }
+    }
+  ];
+
+  if (node.type === 'bookmark') {
+    items.push({
+      label: '编辑 URL',
+      icon: Link2,
+      action: () => {
+        if (node) openEdit(node);
+      }
+    });
+    items.push({
+      label: '打开链接',
+      icon: ExternalLink,
+      action: () => {
+        if (node) openBookmark(node);
+      }
+    });
+    items.push({
+      label: '复制链接',
+      icon: Copy,
+      action: () => {
+        if (node.url) {
+          navigator.clipboard.writeText(node.url).catch(() => {});
+        }
+      }
+    });
+  }
+
+  items.push({
+    label: '移动到...',
+    icon: FolderInput,
+    action: () => {
+      if (node) openMoveToModal(node);
+    }
+  });
+
+  items.push({ separator: true, label: '', action: () => {} });
+
+  items.push({
+    label: '删除',
+    icon: Trash2,
+    danger: true,
+    action: () => {
+      if (node) handleDelete(node);
+    }
+  });
+
+  return items;
+});
+
+function handleContextMenu(payload: { node: BookmarkNode; x: number; y: number }) {
+  contextMenuNode.value = payload.node;
+  contextMenuX.value = payload.x;
+  contextMenuY.value = payload.y;
+  contextMenuVisible.value = true;
+}
+
+// --- Move To ---
+const moveToModalVisible = ref(false);
+const moveToNode = ref<BookmarkNode | null>(null);
+
+function openMoveToModal(node: BookmarkNode) {
+  contextMenuVisible.value = false;
+  moveToNode.value = node;
+  moveToModalVisible.value = true;
+}
+
+function closeMoveToModal() {
+  moveToModalVisible.value = false;
+  moveToNode.value = null;
+}
+
+async function handleMoveTo(targetFolderId: string | null) {
+  if (!moveToNode.value) return;
+  const node = moveToNode.value;
   try {
-    const result = await importBookmarks(file);
+    await updateBookmark(node.id, {
+      parent_id: targetFolderId
+    });
+    closeMoveToModal();
     await loadTree();
-    window.alert(`已导入新环境，共 ${result.imported} 个节点`);
   } catch (error) {
-    window.alert(error instanceof Error ? error.message : '导入失败');
+    window.alert(error instanceof Error ? error.message : '移动失败');
   }
 }
+
+// --- Import / Export ---
+const exportModalOpen = ref(false);
 
 function openExportModal() {
   exportModalOpen.value = true;
@@ -263,27 +418,119 @@ function handleExport(rootId: string | null) {
   exportBookmarks(rootId);
 }
 
-watch(searchQuery, (value) => {
-  window.clearTimeout(searchTimer);
-  const query = value.trim();
-  if (!query) {
-    searchResults.value = [];
-    searchError.value = null;
-    searchLoading.value = false;
-    return;
+async function handleImport(file: File) {
+  try {
+    const result = await importBookmarks(file);
+    await loadTree();
+    window.alert(`已导入，共 ${result.imported} 个节点`);
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '导入失败');
   }
-  searchLoading.value = true;
-  searchTimer = window.setTimeout(async () => {
-    try {
-      searchResults.value = await searchBookmarks(query);
-      searchError.value = null;
-    } catch (error) {
-      searchError.value = error instanceof Error ? error.message : '搜索失败';
-    } finally {
-      searchLoading.value = false;
+}
+
+// --- Drag-drop move from content to sidebar ---
+function handleBookmarkDrop(e: Event) {
+  const detail = (e as CustomEvent).detail as {
+    draggedId: string;
+    targetFolderId: string;
+  };
+  if (detail.draggedId && detail.targetFolderId) {
+    updateBookmark(detail.draggedId, {
+      parent_id: detail.targetFolderId
+    })
+      .then(() => loadTree())
+      .catch((err) =>
+        window.alert(err instanceof Error ? err.message : '移动失败')
+      );
+  }
+}
+
+// --- Keyboard shortcuts ---
+const shortcutsEnabled = ref(true);
+useKeyboard(
+  [
+    {
+      key: 'k',
+      meta: true,
+      handler: () => {
+        searchOpen.value = true;
+      }
+    },
+    {
+      key: 'k',
+      ctrl: true,
+      handler: () => {
+        searchOpen.value = true;
+      }
+    },
+    {
+      key: 'n',
+      handler: () => {
+        handleCreateBookmarkInline(selectedFolderId.value);
+      }
+    },
+    {
+      key: 'N',
+      shift: true,
+      handler: () => {
+        handleCreateFolderInline(selectedFolderId.value);
+      }
+    },
+    {
+      key: 'Delete',
+      handler: () => {
+        if (contextMenuNode.value) {
+          handleDelete(contextMenuNode.value);
+        }
+      }
+    },
+    {
+      key: 'Escape',
+      handler: () => {
+        contextMenuVisible.value = false;
+        moveToModalVisible.value = false;
+        modalOpen.value = false;
+        exportModalOpen.value = false;
+      }
     }
-  }, 250);
+  ],
+  shortcutsEnabled
+);
+
+// --- Lifecycle ---
+onMounted(() => {
+  loadTree();
+  window.addEventListener('bookmark-drop', handleBookmarkDrop);
 });
 
-onMounted(loadTree);
+onUnmounted(() => {
+  window.removeEventListener('bookmark-drop', handleBookmarkDrop);
+});
 </script>
+
+<style>
+/* Modal styles reused from existing code */
+.modal-backdrop {
+  @apply fixed inset-0 z-40 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px];
+  animation: fadeIn 0.15s ease-out;
+}
+
+.modal-panel {
+  @apply w-full max-w-lg rounded-2xl bg-white shadow-[0_24px_80px_-12px_rgba(15,23,42,0.18)];
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.icon-btn {
+  @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700;
+}
+</style>

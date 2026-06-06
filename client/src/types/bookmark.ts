@@ -1,4 +1,5 @@
 export type BookmarkType = 'folder' | 'bookmark';
+export type ViewMode = 'list' | 'grid';
 
 export interface BookmarkNode {
   id: string;
