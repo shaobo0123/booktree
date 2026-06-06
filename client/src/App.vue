@@ -2,7 +2,7 @@
   <div class="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
     <Toolbar
       v-model:query="searchQuery"
-      @create-root="openCreate('folder', null, '新建环境', false)"
+      @create-root="openCreateRoot"
       @export="openExportModal"
       @import="handleImport"
     />
@@ -37,18 +37,16 @@
     <ColumnTree
       :error="loadError"
       :loading="loading"
-      :selected-path="selectedPath"
       :tree="tree"
-      @create-bookmark="openCreateFromList('bookmark', $event)"
-      @create-folder="openCreateFromList('folder', $event)"
+      @create-bookmark="handleCreateBookmark"
+      @create-folder="handleCreateFolder"
       @delete="handleDelete"
       @edit="openEdit"
       @open="openBookmark"
       @reorder="handleReorder"
-      @select="selectFolder"
-      @select-root="selectRoot"
     />
 
+    <!-- Modal for root-level create and all edits -->
     <BookmarkFormModal
       v-if="modalOpen"
       :default-parent-id="modalDefaultParentId"
@@ -63,7 +61,7 @@
 
     <ExportModal
       v-if="exportModalOpen"
-      :default-root-id="selectedFolderId"
+      :default-root-id="null"
       :tree="tree"
       @close="closeExportModal"
       @export="handleExport"
@@ -72,7 +70,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import {
   createBookmark,
   deleteBookmark,
@@ -92,7 +90,6 @@ import Toolbar from './components/Toolbar.vue';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType } from './types/bookmark';
 
 const tree = ref<BookmarkNode[]>([]);
-const selectedPath = ref<string[]>([]);
 const loading = ref(false);
 const loadError = ref<string | null>(null);
 const modalOpen = ref(false);
@@ -109,8 +106,6 @@ const searchError = ref<string | null>(null);
 let searchTimer: number | undefined;
 let metadataRefreshTimer: number | undefined;
 
-const selectedFolderId = computed(() => selectedPath.value[selectedPath.value.length - 1] ?? null);
-
 async function loadTree() {
   loading.value = true;
   loadError.value = null;
@@ -123,36 +118,6 @@ async function loadTree() {
   }
 }
 
-function findPath(nodes: BookmarkNode[], id: string, parents: string[] = []): string[] | null {
-  for (const node of nodes) {
-    const nextPath = [...parents, node.id];
-    if (node.id === id) {
-      return nextPath;
-    }
-    const childPath = findPath(node.children, id, nextPath);
-    if (childPath) {
-      return childPath;
-    }
-  }
-
-  return null;
-}
-
-function selectFolder(node: BookmarkNode) {
-  if (node.type !== 'folder') {
-    return;
-  }
-
-  const path = findPath(tree.value, node.id);
-  if (path) {
-    selectedPath.value = path;
-  }
-}
-
-function selectRoot() {
-  selectedPath.value = [];
-}
-
 function openBookmark(node: BookmarkNode) {
   if (node.url) {
     void refreshBookmarkIcon(node.id)
@@ -160,26 +125,43 @@ function openBookmark(node: BookmarkNode) {
         window.clearTimeout(metadataRefreshTimer);
         metadataRefreshTimer = window.setTimeout(loadTree, 3500);
       })
-      .catch(() => {
-        // Icon refresh is best-effort and must not block opening the bookmark.
-      });
+      .catch(() => {});
     window.open(node.url, '_blank', 'noopener,noreferrer');
   }
 }
 
-function openCreate(type: BookmarkType, parentId: string | null, title?: string, showContextFields = true) {
+// --- Root-level: modal create ---
+function openCreateRoot() {
   editingNode.value = null;
-  modalDefaultType.value = type;
-  modalDefaultParentId.value = parentId;
-  modalShowContextFields.value = showContextFields;
-  modalTitle.value = title ?? (type === 'folder' ? '新建文件夹' : '新建书签');
+  modalDefaultType.value = 'folder';
+  modalDefaultParentId.value = null;
+  modalShowContextFields.value = true;
+  modalTitle.value = '新建环境';
   modalOpen.value = true;
 }
 
-function openCreateFromList(type: BookmarkType, parentId: string | null) {
-  openCreate(type, parentId, undefined, false);
+// --- Child-level: inline create via API ---
+async function handleCreateFolder(data: { parentId: string; title: string }) {
+  try {
+    await createBookmark({ type: 'folder', title: data.title, parent_id: data.parentId });
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '创建失败');
+  }
 }
 
+async function handleCreateBookmark(data: { parentId: string; title: string; url: string }) {
+  try {
+    await createBookmark({ type: 'bookmark', title: data.title, url: data.url || undefined, parent_id: data.parentId });
+    await loadTree();
+    window.clearTimeout(metadataRefreshTimer);
+    metadataRefreshTimer = window.setTimeout(loadTree, 3500);
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '创建失败');
+  }
+}
+
+// --- Edit modal ---
 function openEdit(node: BookmarkNode) {
   editingNode.value = node;
   modalDefaultType.value = node.type;
@@ -211,13 +193,10 @@ async function handleSave(payload: BookmarkFormPayload) {
 
 async function handleDelete(node: BookmarkNode) {
   const message = node.type === 'folder' ? `确定删除文件夹"${node.title}"及其所有子节点吗？` : `确定删除书签"${node.title}"吗？`;
-  if (!window.confirm(message)) {
-    return;
-  }
+  if (!window.confirm(message)) return;
 
   try {
     await deleteBookmark(node.id);
-    selectedPath.value = selectedPath.value.filter((id) => id !== node.id);
     await loadTree();
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '删除失败');
@@ -266,7 +245,6 @@ watch(searchQuery, (value) => {
     searchLoading.value = false;
     return;
   }
-
   searchLoading.value = true;
   searchTimer = window.setTimeout(async () => {
     try {
