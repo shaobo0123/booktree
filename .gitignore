@@ -4,3 +4,7 @@ dist/
 *.log
 server/prisma/dev.db
 server/prisma/dev.db-journal
+
+# SQLite
+*.db-shm
+*.db-wal

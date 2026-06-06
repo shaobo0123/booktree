@@ -7,15 +7,10 @@
     "server"
   ],
   "scripts": {
-    "postinstall": "npm run db:generate -w server",
-    "dev": "concurrently \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev": "concurrently \"node scripts/run-bun.cjs --cwd server --watch src/main.ts\" \"npm run dev -w client\"",
     "dev:client": "npm run dev -w client",
-    "dev:server": "npm run dev -w server",
-    "build": "npm run build -w server && npm run build -w client",
-    "db:generate": "npm run db:generate -w server",
-    "db:push": "npm run db:push -w server",
-    "db:seed": "npm run db:seed -w server",
-    "db:init": "npm run db:push -w server && npm run db:seed -w server"
+    "dev:server": "node scripts/run-bun.cjs --cwd server --watch src/main.ts",
+    "build": "node scripts/run-bun.cjs build src/main.ts --outdir=dist --target=bun --cwd server && npm run build -w client"
   },
   "overrides": {
     "csstype": "3.1.3"
