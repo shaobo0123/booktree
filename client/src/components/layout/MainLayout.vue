@@ -29,7 +29,7 @@
             </div>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto column-scrollbar px-1.5 pb-4">
-            <Sidebar :tree="tree" :selected-id="selectedFolderId" :is-logged-in="isLoggedIn" @select="(id) => $emit('select-folder', id)" @toggle="(id) => $emit('toggle-sidebar', id)" @contextmenu="(payload) => $emit('contextmenu', payload)" />
+            <Sidebar :tree="tree" :selected-id="selectedFolderId" @select="(id) => $emit('select-folder', id)" @toggle="(id) => $emit('toggle-sidebar', id)" />
           </div>
           <div class="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-emerald-400 transition-colors" @mousedown="onResizeStart" />
       </aside>
@@ -45,7 +45,7 @@
             </div>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto column-scrollbar px-1.5 pb-4">
-            <Sidebar :tree="tree" :selected-id="selectedFolderId" :is-logged-in="isLoggedIn" @select="(id) => { $emit('select-folder', id); sidebarOpen = false; }" @toggle="(id) => $emit('toggle-sidebar', id)" @contextmenu="(payload) => $emit('contextmenu', payload)" />
+            <Sidebar :tree="tree" :selected-id="selectedFolderId" @select="(id) => { $emit('select-folder', id); sidebarOpen = false; }" @toggle="(id) => $emit('toggle-sidebar', id)" />
           </div>
         </aside>
       </Transition>
@@ -75,13 +75,14 @@
           :is-logged-in="isLoggedIn"
           @select-folder="(id) => { $emit('select-folder', id); if (!sidebarPinned) sidebarOpen = false; }"
           @open-bookmark="(node) => $emit('open-bookmark', node)"
-          @edit="(node) => $emit('edit', node)"
-          @delete="(node) => $emit('delete', node)"
           @reorder="(parentId, ids) => $emit('reorder', parentId, ids)"
           @update:viewMode="(mode) => $emit('update:viewMode', mode)"
           @create-folder="(parentId) => $emit('create-folder', parentId)"
           @create-bookmark="(parentId) => $emit('create-bookmark', parentId)"
           @contextmenu="(payload) => $emit('contextmenu', payload)"
+          @edit-selected="$emit('edit-selected')"
+          @batch-delete="$emit('batch-delete')"
+          @paste="(targetId) => $emit('paste', targetId)"
         />
       </div>
     </div>
@@ -116,13 +117,15 @@ defineProps<{
 
 const emit = defineEmits<{
   'select-folder': [id: string | null]; 'open-bookmark': [node: BookmarkNode];
-  'edit': [node: BookmarkNode]; 'delete': [node: BookmarkNode];
   'reorder': [parentId: string | null, orderedIds: string[]];
   'create-folder': [parentId: string | null]; 'create-bookmark': [parentId: string | null];
   'contextmenu': [payload: { node: BookmarkNode; x: number; y: number }];
   'export': []; 'import': [file: File]; 'toggle-sidebar': [id: string]; 'clear-favicons': [];
   'login': []; 'logout': [];
   'update:searchOpen': [value: boolean]; 'update:viewMode': [mode: ViewMode];
+  'edit-selected': [];
+  'batch-delete': [];
+  'paste': [targetFolderId: string | null];
 }>();
 
 const sidebarOpen = ref(true);

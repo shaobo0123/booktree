@@ -8,13 +8,32 @@
     <!-- List -->
     <draggable v-if="viewMode === 'list'" v-model="local" item-key="id" class="flex flex-col gap-2" handle=".drag-handle" ghost-class="opacity-30" :animation="200" :disabled="!draggableEnabled" @change="onDragChange">
       <template #item="{ element: item }">
-        <ListItem :node="item" :subtitle="subtitleFn(item)" :draggable="draggableEnabled" @click="$emit('click-item', item)" @contextmenu="(p) => $emit('contextmenu', p)" />
+        <ListItem
+          :node="item"
+          :subtitle="subtitleFn(item)"
+          :draggable="draggableEnabled"
+          :selected="selectedIds?.has(item.id) ?? false"
+          :edit-mode="editMode"
+          @click="(e) => onItemClick(item, e)"
+          @contextmenu="(p) => $emit('contextmenu', p)"
+          @toggle-select="(e) => $emit('toggle-select', item.id, e)"
+        />
       </template>
     </draggable>
 
     <!-- Grid -->
     <div v-else class="grid gap-3" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridMinWidth}, 1fr))` }">
-      <GridCard v-for="item in items" :key="item.id" :node="item" :subtitle="subtitleFn(item)" @click="$emit('click-item', item)" @contextmenu="(p) => $emit('contextmenu', p)" />
+      <GridCard
+        v-for="item in items"
+        :key="item.id"
+        :node="item"
+        :subtitle="subtitleFn(item)"
+        :selected="selectedIds?.has(item.id) ?? false"
+        :edit-mode="editMode"
+        @click="(e) => onItemClick(item, e)"
+        @contextmenu="(p) => $emit('contextmenu', p)"
+        @toggle-select="(e) => $emit('toggle-select', item.id, e)"
+      />
     </div>
   </section>
 </template>
@@ -34,14 +53,25 @@ const props = defineProps<{
   gridMinWidth: string;
   mb?: boolean;
   draggable?: boolean;
+  editMode?: boolean;
+  selectedIds?: Set<string>;
 }>();
 
-const emit = defineEmits<{ 'click-item': [n: BookmarkNode]; reorder: [orderedIds: string[]]; contextmenu: [p: { node: BookmarkNode; x: number; y: number }] }>();
+const emit = defineEmits<{
+  'click-item': [n: BookmarkNode, event?: MouseEvent];
+  reorder: [orderedIds: string[]];
+  contextmenu: [p: { node: BookmarkNode; x: number; y: number }];
+  'toggle-select': [id: string, event?: MouseEvent];
+}>();
 
-const draggableEnabled = computed(() => props.draggable !== false);
+const draggableEnabled = computed(() => props.draggable !== false && !!props.editMode);
 
 const local = ref<BookmarkNode[]>([...props.items]);
 watch(() => props.items, v => { local.value = [...v]; });
+
+function onItemClick(item: BookmarkNode, event?: MouseEvent) {
+  emit('click-item', item, event);
+}
 
 function onDragChange() {
   emit('reorder', local.value.map(item => item.id));

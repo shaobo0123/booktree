@@ -12,8 +12,6 @@
       :username="username"
       @select-folder="selectFolder"
       @open-bookmark="openBookmark"
-      @edit="openEdit"
-      @delete="handleDelete"
       @reorder="handleReorder"
       @create-folder="handleCreateFolderInline"
       @create-bookmark="handleCreateBookmarkInline"
@@ -26,6 +24,9 @@
       @logout="handleLogout"
       @update:searchOpen="(val: boolean) => searchOpen = val"
       @update:viewMode="(mode: ViewMode) => viewMode = mode"
+      @edit-selected="handleEditSelected"
+      @batch-delete="handleBatchDelete"
+      @paste="handlePaste"
     />
 
     <!-- Context Menu -->
@@ -56,34 +57,6 @@
       @save="handleSave"
     />
 
-    <!-- Move To Modal -->
-    <Teleport to="body">
-      <div v-if="moveToModalVisible" class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/20 backdrop-blur-[2px]" @click.self="closeMoveToModal">
-        <div class="w-full max-w-lg rounded-2xl bg-white shadow-[0_24px_80px_-12px_rgba(15,23,42,0.18)]">
-          <div class="flex items-center justify-between px-6 py-4">
-            <h2 class="text-base font-semibold text-slate-900">移动到...</h2>
-            <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" type="button" @click="closeMoveToModal">
-              <X class="h-4 w-4" />
-            </button>
-          </div>
-          <div class="px-6 pb-6">
-            <FolderTreeSelect
-              :model-value="null"
-              :tree="tree"
-              :block-folder-id="moveToNode?.type === 'folder' ? moveToNode.id : null"
-              empty-text="暂无可选文件夹"
-              list-height="320px"
-              root-description="移动到根级"
-              root-label="根级"
-              searchable
-              variant="panel"
-              @update:model-value="handleMoveTo"
-            />
-          </div>
-        </div>
-      </div>
-    </Teleport>
-
     <!-- Export Modal -->
     <ExportModal
       v-if="exportModalOpen"
@@ -110,14 +83,15 @@ import { useRoute, useRouter } from 'vue-router';
 import {
   Copy,
   ExternalLink,
-  FolderInput,
   LogIn,
   LogOut,
   Pencil,
-  Trash2,
-  X
+  Scissors,
+  Trash2
 } from 'lucide-vue-next';
 import {
+  batchDeleteBookmarks,
+  batchMoveBookmarks,
   clearFavicons,
   createBookmark,
   deleteBookmark,
@@ -129,11 +103,11 @@ import {
 } from './api/bookmarks';
 import MainLayout from './components/layout/MainLayout.vue';
 import BookmarkFormModal from './components/modal/BookmarkFormModal.vue';
-import FolderTreeSelect from './components/modal/FolderTreeSelect.vue';
 import ExportModal from './components/modal/ExportModal.vue';
 import LoginModal from './components/modal/LoginModal.vue';
 import { useAuth } from './composables/useAuth';
 import { useSidebarState } from './composables/useSidebarState';
+import { provideSelection } from './composables/useSelection';
 import { useKeyboard } from './composables/useKeyboard';
 import type { BookmarkFormPayload, BookmarkNode, BookmarkType, ViewMode } from './types/bookmark';
 interface MenuItem { label: string; icon?: any; shortcut?: string; danger?: boolean; separator?: boolean; action: () => void; }
@@ -149,6 +123,9 @@ const selectedFolderId = ref<string | null>(route.params.id as string ?? null);
 const viewMode = ref<ViewMode>('list');
 const searchOpen = ref(false);
 
+// --- Selection ---
+const selection = provideSelection();
+
 // --- Auth ---
 const { isLoggedIn, username, loginModalOpen, initAuth, login, logout, openLoginModal, closeLoginModal } = useAuth();
 const loginLoading = ref(false);
@@ -156,6 +133,7 @@ const loginError = ref<string | null>(null);
 
 // Sync URL ← selectedFolderId
 watch(selectedFolderId, (id) => {
+  selection.clear();
   if (!id) { if (route.path !== '/') router.replace('/'); return; }
   const node = findNodeInTree(tree.value, id);
   const title = node ? encodeURIComponent(node.title) : '';
@@ -202,6 +180,7 @@ const breadcrumbPath = computed(() => {
 });
 
 function selectFolder(id: string | null) {
+  selection.exitEditMode();
   selectedFolderId.value = id;
 }
 
@@ -284,6 +263,23 @@ function openEdit(node: BookmarkNode) {
   modalOpen.value = true;
 }
 
+function selectForEdit(node: BookmarkNode) {
+  if (node.parent_id !== selectedFolderId.value) {
+    selectFolder(node.parent_id);
+  }
+  selection.enterEditMode();
+  selection.select(node.id);
+}
+
+function cutToClipboard(node: BookmarkNode) {
+  if (node.parent_id !== selectedFolderId.value) {
+    selectFolder(node.parent_id);
+  }
+  selection.clear();
+  selection.select(node.id);
+  selection.cut();
+}
+
 function closeModal() {
   modalOpen.value = false;
 }
@@ -317,9 +313,49 @@ async function handleDelete(node: BookmarkNode) {
 
   try {
     await deleteBookmark(node.id);
+    selection.clear();
     await loadTree();
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '删除失败');
+  }
+}
+
+// --- Batch operations ---
+async function handleBatchDelete() {
+  const ids = [...selection.selectedIds.value];
+  if (ids.length === 0) return;
+  const message = `确定删除选中的 ${ids.length} 个项目及其子节点吗？此操作不可撤销。`;
+  if (!window.confirm(message)) return;
+
+  try {
+    await batchDeleteBookmarks(ids);
+    selection.exitEditMode();
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '批量删除失败');
+  }
+}
+
+async function handlePaste(targetFolderId: string | null) {
+  const cb = selection.clipboard.value;
+  if (!cb || cb.ids.length === 0) return;
+
+  try {
+    await batchMoveBookmarks(cb.ids, targetFolderId);
+    selection.clearClipboard();
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '粘贴失败');
+  }
+}
+
+function handleEditSelected() {
+  const ids = [...selection.selectedIds.value];
+  if (ids.length !== 1) return;
+  const node = findNodeInTree(tree.value, ids[0]);
+  if (node) {
+    selection.exitEditMode();
+    openEdit(node);
   }
 }
 
@@ -385,7 +421,12 @@ const contextMenuItems = computed<MenuItem[]>(() => {
     items.push({
       label: '编辑',
       icon: Pencil,
-      action: () => { if (node) openEdit(node); }
+      action: () => { if (node) selectForEdit(node); }
+    });
+    items.push({
+      label: '剪切',
+      icon: Scissors,
+      action: () => { if (node) cutToClipboard(node); }
     });
   }
 
@@ -409,14 +450,6 @@ const contextMenuItems = computed<MenuItem[]>(() => {
   }
 
   if (isLoggedIn.value) {
-    items.push({
-      label: '移动到...',
-      icon: FolderInput,
-      action: () => {
-        if (node) openMoveToModal(node);
-      }
-    });
-
     items.push({ separator: true, label: '', action: () => {} });
 
     items.push({
@@ -437,35 +470,6 @@ function handleContextMenu(payload: { node: BookmarkNode; x: number; y: number }
   contextMenuX.value = payload.x;
   contextMenuY.value = payload.y;
   contextMenuVisible.value = true;
-}
-
-// --- Move To ---
-const moveToModalVisible = ref(false);
-const moveToNode = ref<BookmarkNode | null>(null);
-
-function openMoveToModal(node: BookmarkNode) {
-  contextMenuVisible.value = false;
-  moveToNode.value = node;
-  moveToModalVisible.value = true;
-}
-
-function closeMoveToModal() {
-  moveToModalVisible.value = false;
-  moveToNode.value = null;
-}
-
-async function handleMoveTo(targetFolderId: string | null) {
-  if (!moveToNode.value) return;
-  const node = moveToNode.value;
-  try {
-    await updateBookmark(node.id, {
-      parent_id: targetFolderId
-    });
-    closeMoveToModal();
-    await loadTree();
-  } catch (error) {
-    window.alert(error instanceof Error ? error.message : '移动失败');
-  }
 }
 
 // --- Import / Export ---
@@ -566,7 +570,6 @@ useKeyboard(
       key: 'Escape',
       handler: () => {
         contextMenuVisible.value = false;
-        moveToModalVisible.value = false;
         modalOpen.value = false;
         exportModalOpen.value = false;
       }

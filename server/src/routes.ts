@@ -1,6 +1,8 @@
 import type { JwtPayload } from "./auth.js";
 import { getAuthUser, requireAuth, signToken, verifyPassword } from "./auth.js";
 import {
+  batchDeleteBookmarks,
+  batchMoveBookmarks,
   clearFavicons,
   createBookmarkAsync,
   exportBookmarkHtmlByRoot,
@@ -155,6 +157,35 @@ addRoute("DELETE", "/api/bookmarks/:id", (req, user, params) => {
     return new Response(null, { status: 204 });
   } catch (e) {
     return error(e instanceof Error ? e.message : "删除失败", 404);
+  }
+});
+
+// Batch operations
+addRoute("POST", "/api/bookmarks/batch-delete", async (req, user) => {
+  if (!user) return error("请先登录", 401);
+  try {
+    const body = await req.json() as { ids: string[] };
+    if (!Array.isArray(body.ids) || body.ids.length === 0) {
+      return error("ids array is required");
+    }
+    batchDeleteBookmarks(body.ids);
+    return json({ ok: true });
+  } catch (e) {
+    return error(e instanceof Error ? e.message : "批量删除失败");
+  }
+});
+
+addRoute("POST", "/api/bookmarks/batch-move", async (req, user) => {
+  if (!user) return error("请先登录", 401);
+  try {
+    const body = await req.json() as { ids: string[]; target_parent_id: string | null };
+    if (!Array.isArray(body.ids) || body.ids.length === 0) {
+      return error("ids array is required");
+    }
+    batchMoveBookmarks(body.ids, body.target_parent_id ?? null);
+    return json({ ok: true });
+  } catch (e) {
+    return error(e instanceof Error ? e.message : "批量移动失败");
   }
 });
 

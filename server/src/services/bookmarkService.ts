@@ -280,6 +280,29 @@ export function removeBookmark(id: string): void {
   deleteNode(id);
 }
 
+export function batchDeleteBookmarks(ids: string[]): void {
+  if (ids.length === 0) return;
+  for (const id of ids) {
+    const existing = db.query("SELECT id FROM bookmarks WHERE id = ?").get(id);
+    if (existing) deleteNode(id);
+  }
+}
+
+export function batchMoveBookmarks(ids: string[], targetParentId: string | null): void {
+  if (ids.length === 0) return;
+  if (targetParentId) {
+    const parent = db.query("SELECT id, type FROM bookmarks WHERE id = ?").get(targetParentId) as { id: string; type: string } | null;
+    if (!parent) throw new Error("Target folder not found");
+    if (parent.type !== "folder") throw new Error("Target must be a folder");
+  }
+  const now = nowISO();
+  for (const id of ids) {
+    if (targetParentId === id) continue;
+    if (targetParentId && isDescendant(id, targetParentId)) continue;
+    db.run("UPDATE bookmarks SET parent_id = ?, updated_at = ? WHERE id = ?", [targetParentId, now, id]);
+  }
+}
+
 export function searchBookmarks(query: string, isAuthenticated = false): BookmarkNode[] {
   const q = query.trim();
   if (!q) return [];

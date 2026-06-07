@@ -40,28 +40,79 @@
         </div>
       </div>
 
-      <!-- Actions bar -->
-      <div class="mb-5 flex items-center justify-between">
-        <div v-if="isLoggedIn" class="flex items-center gap-2">
-          <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-emerald-200 bg-emerald-50 text-[13px] text-emerald-700 cursor-pointer transition-colors hover:bg-emerald-100 hover:border-emerald-300" @click="$emit('create-folder', selectedFolderId)">
-            <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建文件夹</span>
+      <!-- Unified actions bar -->
+      <div class="mb-5 flex items-start gap-2">
+        <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+        <!-- Edit mode toggle (leftmost) -->
+          <button
+            v-if="isLoggedIn"
+            class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border text-[13px] font-medium cursor-pointer transition-colors"
+            :class="selection.editMode.value ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:border-slate-300'"
+            @click="selection.toggleEditMode()"
+          >
+            <Pencil v-if="!selection.editMode.value" class="h-3.5 w-3.5" :stroke-width="2" />
+            <X v-else class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>{{ selection.editMode.value ? '完成' : '编辑' }}</span>
           </button>
-          <button class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-slate-200 bg-white text-[13px] text-slate-600 cursor-pointer transition-colors hover:bg-slate-50 hover:border-slate-300" @click="$emit('create-bookmark', selectedFolderId)">
-            <Plus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建书签</span>
+
+          <!-- Create buttons (disabled in edit mode) -->
+          <template v-if="isLoggedIn">
+            <button
+              class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border text-[13px] transition-colors"
+              :class="selection.editMode.value ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed' : 'border-emerald-200 bg-emerald-50 text-emerald-700 cursor-pointer hover:bg-emerald-100 hover:border-emerald-300'"
+              :disabled="selection.editMode.value"
+              @click="!selection.editMode.value && $emit('create-folder', selectedFolderId)"
+            >
+              <FolderPlus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建文件夹</span>
+            </button>
+            <button
+              class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border text-[13px] transition-colors"
+              :class="selection.editMode.value ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed' : 'border-slate-200 bg-white text-slate-600 cursor-pointer hover:bg-slate-50 hover:border-slate-300'"
+              :disabled="selection.editMode.value"
+              @click="!selection.editMode.value && $emit('create-bookmark', selectedFolderId)"
+            >
+              <Plus class="h-3.5 w-3.5" :stroke-width="2" /><span>新建书签</span>
+            </button>
+          </template>
+          <span v-if="!isLoggedIn" class="text-[13px] text-slate-400">只读模式</span>
+
+          <!-- Paste button (always when clipboard has items) -->
+          <button
+            v-if="selection.clipboard.value && isLoggedIn"
+            class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-amber-200 bg-amber-50 text-[13px] text-amber-700 font-medium cursor-pointer transition-colors hover:bg-amber-100 hover:border-amber-300"
+            @click="$emit('paste', selectedFolderId)"
+          >
+            <ClipboardPaste class="h-3.5 w-3.5" :stroke-width="2" />
+            <span>粘贴 {{ selection.clipboard.value.ids.length }} 项</span>
           </button>
+
+          <!-- Edit mode action buttons -->
+          <template v-if="selection.editMode.value && isLoggedIn">
+            <button
+              v-for="btn in editActions"
+              :key="btn.label"
+              class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border text-[13px] transition-colors"
+              :class="btn.disabled ? 'border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed' : btn.danger ? 'border-red-200 bg-red-50 text-red-600 cursor-pointer hover:bg-red-100 hover:border-red-300' : 'border-slate-200 bg-white text-slate-600 cursor-pointer hover:bg-slate-50 hover:border-slate-300'"
+              :disabled="btn.disabled"
+              @click="!btn.disabled && btn.action()"
+            >
+              <component :is="btn.icon" class="h-3.5 w-3.5" :stroke-width="2" />
+              <span>{{ btn.label }}</span>
+            </button>
+          </template>
+
         </div>
-        <div v-else class="flex items-center gap-2">
-          <span class="text-[13px] text-slate-400">只读模式</span>
-        </div>
-        <div class="flex items-center gap-2">
+
+        <!-- Right side: selection count + view toggle (fixed, not affected by wrap) -->
+        <div class="flex items-center gap-2 flex-shrink-0">
           <div class="flex rounded-lg border border-slate-200 bg-white p-0.5">
-            <button class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600" :class="viewMode === 'list' ? 'bg-slate-100 text-slate-900' : ''" title="列表视图" @click="$emit('update:viewMode', 'list')">
-              <AlignJustify class="h-3.5 w-3.5" :stroke-width="2" />
-            </button>
-            <button class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600" :class="viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : ''" title="网格视图" @click="$emit('update:viewMode', 'grid')">
-              <LayoutGrid class="h-3.5 w-3.5" :stroke-width="2" />
-            </button>
-          </div>
+          <button class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600" :class="viewMode === 'list' ? 'bg-slate-100 text-slate-900' : ''" title="列表视图" @click="$emit('update:viewMode', 'list')">
+            <AlignJustify class="h-3.5 w-3.5" :stroke-width="2" />
+          </button>
+          <button class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600" :class="viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : ''" title="网格视图" @click="$emit('update:viewMode', 'grid')">
+            <LayoutGrid class="h-3.5 w-3.5" :stroke-width="2" />
+          </button>
+        </div>
         </div>
       </div>
 
@@ -83,20 +134,61 @@
       </div>
 
       <template v-else>
-        <SectionList v-if="orderedFolders.length > 0" :items="orderedFolders" label="文件夹" :subtitle-fn="folderStats" :view-mode="viewMode" grid-min-width="200px" mb :draggable="isLoggedIn"
-          @click-item="(f) => $emit('select-folder', f.id)" @reorder="onFolderDragEnd" @contextmenu="(p) => $emit('contextmenu', p)" />
-        <SectionList v-if="orderedBookmarks.length > 0" :items="orderedBookmarks" label="书签" :subtitle-fn="(b) => cleanUrl(b.url || '')" :view-mode="viewMode" grid-min-width="180px" :draggable="isLoggedIn"
-          @click-item="(b) => $emit('open-bookmark', b)" @reorder="onBookmarkDragEnd" @contextmenu="(p) => $emit('contextmenu', p)" />
+        <!-- Select-all row (edit mode only, right-aligned with checkboxes) -->
+        <div v-if="selection.editMode.value && allSelectable.length > 0" class="flex items-center justify-end gap-2 mb-2 pr-1">
+          <span v-if="!selection.isEmpty.value" class="text-[13px] font-semibold text-emerald-700">已选 {{ selection.count.value }} 项</span>
+          <span class="text-[13px] text-slate-500 cursor-pointer select-none" @click="toggleSelectAll">全选</span>
+          <span
+            class="inline-flex items-center justify-center w-5 h-5 rounded-full border-2 cursor-pointer transition-colors"
+            :class="allSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent hover:border-emerald-400'"
+            @click="toggleSelectAll"
+          >
+            <Check class="h-3 w-3" :stroke-width="3" />
+          </span>
+        </div>
+
+        <SectionList
+          v-if="orderedFolders.length > 0"
+          :items="orderedFolders"
+          label="文件夹"
+          :subtitle-fn="folderStats"
+          :view-mode="viewMode"
+          grid-min-width="200px"
+          mb
+          :draggable="isLoggedIn"
+          :edit-mode="selection.editMode.value"
+          :selected-ids="selection.selectedIds.value"
+          @click-item="(f, e) => onItemClick(f, e)"
+          @reorder="onFolderDragEnd"
+          @contextmenu="(p) => $emit('contextmenu', p)"
+          @toggle-select="onToggleSelect"
+        />
+        <SectionList
+          v-if="orderedBookmarks.length > 0"
+          :items="orderedBookmarks"
+          label="书签"
+          :subtitle-fn="(b) => cleanUrl(b.url || '')"
+          :view-mode="viewMode"
+          grid-min-width="180px"
+          :draggable="isLoggedIn"
+          :edit-mode="selection.editMode.value"
+          :selected-ids="selection.selectedIds.value"
+          @click-item="(b, e) => onItemClick(b, e)"
+          @reorder="onBookmarkDragEnd"
+          @contextmenu="(p) => $emit('contextmenu', p)"
+          @toggle-select="onToggleSelect"
+        />
       </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { AlignJustify, FolderPlus, Inbox, LayoutGrid, LibraryBig, Plus } from 'lucide-vue-next';
+import { computed, onMounted, onUnmounted } from 'vue';
+import { AlignJustify, Check, ClipboardPaste, FolderPlus, Inbox, LayoutGrid, LibraryBig, Pencil, Plus, Scissors, Trash2, X } from 'lucide-vue-next';
 import Breadcrumb from '../layout/Breadcrumb.vue';
 import SectionList from './SectionList.vue';
+import { useSelection } from '../../composables/useSelection';
 import type { BookmarkNode, ViewMode } from '../../types/bookmark';
 
 const props = defineProps<{
@@ -111,14 +203,17 @@ const props = defineProps<{
 const emit = defineEmits<{
   'select-folder': [id: string | null];
   'open-bookmark': [node: BookmarkNode];
-  'edit': [node: BookmarkNode];
-  'delete': [node: BookmarkNode];
   'reorder': [parentId: string | null, orderedIds: string[]];
   'create-folder': [parentId: string | null];
   'create-bookmark': [parentId: string | null];
   'contextmenu': [payload: { node: BookmarkNode; x: number; y: number }];
   'update:viewMode': [mode: ViewMode];
+  'edit-selected': [];
+  'batch-delete': [];
+  'paste': [targetFolderId: string | null];
 }>();
+
+const selection = useSelection();
 
 function findNodeById(id: string, nodes: BookmarkNode[] = props.tree): BookmarkNode | null {
   for (const node of nodes) { if (node.id === id) return node; const f = findNodeById(id, node.children); if (f) return f; }
@@ -133,6 +228,26 @@ const orderedBookmarks = computed(() => [...bookmarks.value].sort((a, b) => a.so
 const folderCount = computed(() => folders.value.length);
 const bookmarkCount = computed(() => bookmarks.value.length);
 
+const allSelectable = computed(() => [...orderedFolders.value, ...orderedBookmarks.value]);
+
+const allSelected = computed(() =>
+  allSelectable.value.length > 0 && allSelectable.value.every(n => selection.selectedIds.value.has(n.id))
+);
+
+function toggleSelectAll() {
+  if (allSelected.value) {
+    selection.clear();
+  } else {
+    selection.selectAll(allSelectable.value);
+  }
+}
+
+const editActions = computed(() => [
+  { label: '修改', icon: Pencil, disabled: selection.count.value !== 1, danger: false, action: () => emit('edit-selected') },
+  { label: '剪切', icon: Scissors, disabled: selection.isEmpty.value, danger: false, action: () => handleCut() },
+  { label: '删除', icon: Trash2, disabled: selection.isEmpty.value, danger: true, action: () => emit('batch-delete') },
+]);
+
 const currentFolderTitle = computed(() => !props.selectedFolderId ? '全部书签' : (findNodeById(props.selectedFolderId)?.title ?? '全部书签'));
 
 const breadcrumbPath = computed(() => {
@@ -144,16 +259,71 @@ const breadcrumbPath = computed(() => {
   return walk(props.selectedFolderId, props.tree) ?? [];
 });
 
+function onItemClick(item: BookmarkNode, event?: MouseEvent) {
+  if (selection.editMode.value) {
+    // In edit mode: always toggle selection
+    onToggleSelect(item.id, event);
+  } else if (selection.isEmpty.value && !(event?.ctrlKey || event?.metaKey || event?.shiftKey)) {
+    // Normal mode, no selection: navigate/open
+    if (item.type === 'folder') {
+      emit('select-folder', item.id);
+    } else {
+      emit('open-bookmark', item);
+    }
+  } else {
+    // Has existing selection or modifier key: toggle selection
+    onToggleSelect(item.id, event);
+  }
+}
+
+function onToggleSelect(id: string, event?: MouseEvent) {
+  const allIds = allSelectable.value.map(n => n.id);
+  if (event?.shiftKey && selection.lastClickedId.value) {
+    selection.selectRange(allIds, event);
+  } else {
+    selection.toggle(id, event);
+  }
+}
+
+function handleCut() {
+  selection.cut();
+  selection.exitEditMode();
+}
+
 function onFolderDragEnd(orderedIds: string[]) {
   if (!props.isLoggedIn) return;
-  // Combine new folder order with unchanged bookmark order
   emit('reorder', props.selectedFolderId, [...orderedIds, ...orderedBookmarks.value.map(n => n.id)]);
 }
 function onBookmarkDragEnd(orderedIds: string[]) {
   if (!props.isLoggedIn) return;
-  // Combine unchanged folder order with new bookmark order
   emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...orderedIds]);
 }
+
+// --- Keyboard shortcuts ---
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    selection.exitEditMode();
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+    const target = e.target as HTMLElement;
+    const tag = target.tagName.toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea' && !target.isContentEditable) {
+      e.preventDefault();
+      selection.selectAll(allSelectable.value);
+    }
+  }
+  if (e.key === 'Delete' && !selection.isEmpty.value && props.isLoggedIn) {
+    const target = e.target as HTMLElement;
+    const tag = target.tagName.toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea' && !target.isContentEditable) {
+      e.preventDefault();
+      emit('batch-delete');
+    }
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => window.removeEventListener('keydown', onKeydown));
 
 // --- Shared helpers ---
 function cleanUrl(url: string): string { try { const u = new URL(url); return u.host + u.pathname.replace(/\/$/, ''); } catch { return url; } }

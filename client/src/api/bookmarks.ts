@@ -95,6 +95,20 @@ export function clearFavicons() {
   return request<{ ok: boolean }>('/api/bookmarks/clear-favicons', { method: 'POST' });
 }
 
+export function batchDeleteBookmarks(ids: string[]) {
+  return request<{ ok: boolean }>('/api/bookmarks/batch-delete', {
+    method: 'POST',
+    body: JSON.stringify({ ids })
+  });
+}
+
+export function batchMoveBookmarks(ids: string[], targetParentId: string | null) {
+  return request<{ ok: boolean }>('/api/bookmarks/batch-move', {
+    method: 'POST',
+    body: JSON.stringify({ ids, target_parent_id: targetParentId })
+  });
+}
+
 export function fetchBookmarkFavicon(id: string) {
   return request<{ favicon_base64: string | null; favicon_mime: string | null }>(`/api/bookmarks/${id}/favicon`);
 }
