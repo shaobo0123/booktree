@@ -109,6 +109,13 @@ export function batchMoveBookmarks(ids: string[], targetParentId: string | null)
   });
 }
 
+export function batchUpdatePermission(ids: string[], permission: 'public' | 'private') {
+  return request<{ ok: boolean }>('/api/bookmarks/batch-permission', {
+    method: 'POST',
+    body: JSON.stringify({ ids, read_permission: permission })
+  });
+}
+
 export function fetchBookmarkFavicon(id: string) {
   return request<{ favicon_base64: string | null; favicon_mime: string | null }>(`/api/bookmarks/${id}/favicon`);
 }

@@ -185,7 +185,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue';
-import { AlignJustify, Check, ClipboardPaste, FolderPlus, Inbox, LayoutGrid, LibraryBig, Pencil, Plus, Scissors, Trash2, X } from 'lucide-vue-next';
+import { AlignJustify, Check, ClipboardPaste, FolderPlus, Inbox, LayoutGrid, LibraryBig, Lock, Pencil, Plus, Scissors, Trash2, X } from 'lucide-vue-next';
 import Breadcrumb from '../layout/Breadcrumb.vue';
 import SectionList from './SectionList.vue';
 import { useSelection } from '../../composables/useSelection';
@@ -210,6 +210,7 @@ const emit = defineEmits<{
   'update:viewMode': [mode: ViewMode];
   'edit-selected': [];
   'batch-delete': [];
+  'batch-permission': [permission: 'public' | 'private'];
   'paste': [targetFolderId: string | null];
 }>();
 
@@ -245,8 +246,23 @@ function toggleSelectAll() {
 const editActions = computed(() => [
   { label: '修改', icon: Pencil, disabled: selection.count.value !== 1, danger: false, action: () => emit('edit-selected') },
   { label: '剪切', icon: Scissors, disabled: selection.isEmpty.value, danger: false, action: () => handleCut() },
+  { label: togglePermissionLabel.value, icon: Lock, disabled: selection.isEmpty.value, danger: false, action: () => emit('batch-permission', togglePermissionTarget.value) },
   { label: '删除', icon: Trash2, disabled: selection.isEmpty.value, danger: true, action: () => emit('batch-delete') },
 ]);
+
+// Permission toggle: check if all selected are private → show "设为公开", else "设为私有"
+const togglePermissionTarget = computed(() => {
+  const ids = [...selection.selectedIds.value];
+  const allPrivate = ids.length > 0 && ids.every(id => {
+    const node = findNodeById(id);
+    return node?.read_permission === 'private';
+  });
+  return allPrivate ? 'public' : 'private';
+});
+
+const togglePermissionLabel = computed(() => {
+  return togglePermissionTarget.value === 'public' ? '设为公开' : '设为私有';
+});
 
 const currentFolderTitle = computed(() => !props.selectedFolderId ? '全部书签' : (findNodeById(props.selectedFolderId)?.title ?? '全部书签'));
 

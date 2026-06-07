@@ -20,12 +20,14 @@
       @import="handleImport"
       @toggle-sidebar="toggleSidebarExpanded"
       @clear-favicons="handleClearFavicons"
+      @permission-overview="permissionOverviewOpen = true"
       @login="handleOpenLoginModal"
       @logout="handleLogout"
       @update:searchOpen="(val: boolean) => searchOpen = val"
       @update:viewMode="(mode: ViewMode) => viewMode = mode"
       @edit-selected="handleEditSelected"
       @batch-delete="handleBatchDelete"
+      @batch-permission="handleBatchPermission"
       @paste="handlePaste"
     />
 
@@ -66,6 +68,14 @@
       @export="handleExport"
     />
 
+    <!-- Permission Overview Modal -->
+    <PermissionOverviewModal
+      v-if="permissionOverviewOpen"
+      :tree="tree"
+      @close="permissionOverviewOpen = false"
+      @unlock="handleUnlock"
+    />
+
     <!-- Login Modal -->
     <LoginModal
       v-if="loginModalOpen"
@@ -92,6 +102,7 @@ import {
 import {
   batchDeleteBookmarks,
   batchMoveBookmarks,
+  batchUpdatePermission,
   clearFavicons,
   createBookmark,
   deleteBookmark,
@@ -104,6 +115,7 @@ import {
 import MainLayout from './components/layout/MainLayout.vue';
 import BookmarkFormModal from './components/modal/BookmarkFormModal.vue';
 import ExportModal from './components/modal/ExportModal.vue';
+import PermissionOverviewModal from './components/modal/PermissionOverviewModal.vue';
 import LoginModal from './components/modal/LoginModal.vue';
 import { useAuth } from './composables/useAuth';
 import { useSidebarState } from './composables/useSidebarState';
@@ -122,6 +134,7 @@ const router = useRouter();
 const selectedFolderId = ref<string | null>(route.params.id as string ?? null);
 const viewMode = ref<ViewMode>('list');
 const searchOpen = ref(false);
+const permissionOverviewOpen = ref(false);
 
 // --- Selection ---
 const selection = provideSelection();
@@ -321,6 +334,28 @@ async function handleDelete(node: BookmarkNode) {
 }
 
 // --- Batch operations ---
+async function handleUnlock(id: string) {
+  try {
+    await batchUpdatePermission([id], 'public');
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '取消私有失败');
+  }
+}
+
+async function handleBatchPermission(permission: 'public' | 'private') {
+  const ids = [...selection.selectedIds.value];
+  if (ids.length === 0) return;
+
+  try {
+    await batchUpdatePermission(ids, permission);
+    selection.exitEditMode();
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '修改权限失败');
+  }
+}
+
 async function handleBatchDelete() {
   const ids = [...selection.selectedIds.value];
   if (ids.length === 0) return;

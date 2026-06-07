@@ -56,6 +56,11 @@
               <span>导出书签</span>
             </button>
             <div class="my-1 h-px bg-slate-100" />
+            <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-slate-700 cursor-pointer transition-colors hover:bg-slate-100" @click="$emit('permission-overview'); moreOpen = false">
+              <Lock class="h-3.5 w-3.5" :stroke-width="2" />
+              <span>权限总览</span>
+            </button>
+            <div class="my-1 h-px bg-slate-100" />
             <button class="flex items-center gap-2 w-full px-2.5 py-[7px] rounded-[7px] border-none bg-transparent text-[13px] text-rose-600 cursor-pointer transition-colors hover:bg-rose-50" @click="$emit('clear-favicons'); moreOpen = false">
               <Trash2 class="h-3.5 w-3.5" :stroke-width="2" />
               <span>清空图标缓存</span>
@@ -90,6 +95,7 @@ import {
   Download,
   FolderPlus,
   LibraryBig,
+  Lock,
   LogIn,
   LogOut,
   MoreHorizontal,
@@ -119,6 +125,7 @@ const emit = defineEmits<{
   'export': [];
   'import': [file: File];
   'clear-favicons': [];
+  'permission-overview': [];
   'login': [];
   'logout': [];
 }>();

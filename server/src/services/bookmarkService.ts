@@ -280,6 +280,14 @@ export function removeBookmark(id: string): void {
   deleteNode(id);
 }
 
+export function batchUpdatePermission(ids: string[], permission: "public" | "private"): void {
+  if (ids.length === 0) return;
+  const now = nowISO();
+  for (const id of ids) {
+    db.run("UPDATE bookmarks SET read_permission = ?, updated_at = ? WHERE id = ?", [permission, now, id]);
+  }
+}
+
 export function batchDeleteBookmarks(ids: string[]): void {
   if (ids.length === 0) return;
   for (const id of ids) {

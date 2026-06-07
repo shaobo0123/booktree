@@ -14,6 +14,7 @@
       @new-folder="(parentId) => $emit('create-folder', parentId)"
       @new-bookmark="(parentId) => $emit('create-bookmark', parentId)"
       @clear-favicons="$emit('clear-favicons')"
+      @permission-overview="$emit('permission-overview')"
       @login="$emit('login')"
       @logout="$emit('logout')"
     />
@@ -82,6 +83,7 @@
           @contextmenu="(payload) => $emit('contextmenu', payload)"
           @edit-selected="$emit('edit-selected')"
           @batch-delete="$emit('batch-delete')"
+          @batch-permission="(p) => $emit('batch-permission', p)"
           @paste="(targetId) => $emit('paste', targetId)"
         />
       </div>
@@ -121,10 +123,12 @@ const emit = defineEmits<{
   'create-folder': [parentId: string | null]; 'create-bookmark': [parentId: string | null];
   'contextmenu': [payload: { node: BookmarkNode; x: number; y: number }];
   'export': []; 'import': [file: File]; 'toggle-sidebar': [id: string]; 'clear-favicons': [];
+  'permission-overview': [];
   'login': []; 'logout': [];
   'update:searchOpen': [value: boolean]; 'update:viewMode': [mode: ViewMode];
   'edit-selected': [];
   'batch-delete': [];
+  'batch-permission': [permission: 'public' | 'private'];
   'paste': [targetFolderId: string | null];
 }>();
 

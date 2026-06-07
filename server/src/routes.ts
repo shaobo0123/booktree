@@ -3,6 +3,7 @@ import { getAuthUser, requireAuth, signToken, verifyPassword } from "./auth.js";
 import {
   batchDeleteBookmarks,
   batchMoveBookmarks,
+  batchUpdatePermission,
   clearFavicons,
   createBookmarkAsync,
   exportBookmarkHtmlByRoot,
@@ -186,6 +187,23 @@ addRoute("POST", "/api/bookmarks/batch-move", async (req, user) => {
     return json({ ok: true });
   } catch (e) {
     return error(e instanceof Error ? e.message : "批量移动失败");
+  }
+});
+
+addRoute("POST", "/api/bookmarks/batch-permission", async (req, user) => {
+  if (!user) return error("请先登录", 401);
+  try {
+    const body = await req.json() as { ids: string[]; read_permission: "public" | "private" };
+    if (!Array.isArray(body.ids) || body.ids.length === 0) {
+      return error("ids array is required");
+    }
+    if (body.read_permission !== "public" && body.read_permission !== "private") {
+      return error("read_permission must be public or private");
+    }
+    batchUpdatePermission(body.ids, body.read_permission);
+    return json({ ok: true });
+  } catch (e) {
+    return error(e instanceof Error ? e.message : "批量修改权限失败");
   }
 });
 
