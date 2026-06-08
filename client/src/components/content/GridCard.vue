@@ -1,11 +1,10 @@
 <template>
   <div
-    class="relative rounded-xl border transition-all group cursor-pointer"
-    :class="selected ? 'border-emerald-400 bg-emerald-50 shadow-md ring-1 ring-emerald-200' : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'"
+    class="relative flex items-start gap-3 px-4 py-3.5 rounded-xl cursor-pointer transition-colors group"
+    :class="selected ? 'bg-emerald-50' : 'bg-white hover:bg-slate-50'"
     @click="onClick"
     @contextmenu.prevent="onContextMenu"
   >
-    <!-- Selection checkbox (edit mode: always shown) -->
     <span
       v-if="editMode || selected"
       class="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-5 h-5 rounded-full border-2 transition-colors"
@@ -14,12 +13,10 @@
       <Check class="h-3 w-3" :stroke-width="3" />
     </span>
 
-    <div class="flex flex-col items-center gap-2 px-3 py-4 text-center">
-      <BookmarkNodeIcon :node="node" size="lg" />
-      <div class="w-full min-w-0 overflow-hidden">
-        <span class="block truncate text-[13px] font-medium text-slate-800">{{ node.title }}</span>
-        <span class="mt-0.5 block truncate text-[11px] text-slate-400">{{ subtitle }}</span>
-      </div>
+    <BookmarkNodeIcon :node="node" size="lg" class="mt-0.5 flex-shrink-0" />
+    <div class="min-w-0 flex-1">
+      <span class="block truncate text-[13px] font-medium text-slate-800">{{ node.title }}</span>
+      <span class="mt-0.5 block truncate text-[11px] text-slate-400">{{ subtitle }}</span>
     </div>
   </div>
 </template>

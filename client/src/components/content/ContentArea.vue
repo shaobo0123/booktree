@@ -43,7 +43,6 @@
       <!-- Unified actions bar -->
       <div class="mb-5 flex items-start gap-2">
         <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-        <!-- Edit mode toggle (leftmost) -->
           <button
             v-if="isLoggedIn"
             class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border text-[13px] font-medium cursor-pointer transition-colors"
@@ -55,7 +54,6 @@
             <span>{{ selection.editMode.value ? '完成' : '编辑' }}</span>
           </button>
 
-          <!-- Create buttons (disabled in edit mode) -->
           <template v-if="isLoggedIn">
             <button
               class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border text-[13px] transition-colors"
@@ -76,7 +74,6 @@
           </template>
           <span v-if="!isLoggedIn" class="text-[13px] text-slate-400">只读模式</span>
 
-          <!-- Paste button (always when clipboard has items) -->
           <button
             v-if="selection.clipboard.value && isLoggedIn"
             class="inline-flex items-center gap-[5px] h-8 px-3 rounded-lg border border-amber-200 bg-amber-50 text-[13px] text-amber-700 font-medium cursor-pointer transition-colors hover:bg-amber-100 hover:border-amber-300"
@@ -86,7 +83,6 @@
             <span>粘贴 {{ selection.clipboard.value.ids.length }} 项</span>
           </button>
 
-          <!-- Edit mode action buttons -->
           <template v-if="selection.editMode.value && isLoggedIn">
             <button
               v-for="btn in editActions"
@@ -100,19 +96,6 @@
               <span>{{ btn.label }}</span>
             </button>
           </template>
-
-        </div>
-
-        <!-- Right side: selection count + view toggle (fixed, not affected by wrap) -->
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <div class="flex rounded-lg border border-slate-200 bg-white p-0.5">
-          <button class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600" :class="viewMode === 'list' ? 'bg-slate-100 text-slate-900' : ''" title="列表视图" @click="$emit('update:viewMode', 'list')">
-            <AlignJustify class="h-3.5 w-3.5" :stroke-width="2" />
-          </button>
-          <button class="inline-flex items-center justify-center h-7 w-8 rounded-md border-none bg-transparent text-slate-400 cursor-pointer transition-colors hover:text-slate-600" :class="viewMode === 'grid' ? 'bg-slate-100 text-slate-900' : ''" title="网格视图" @click="$emit('update:viewMode', 'grid')">
-            <LayoutGrid class="h-3.5 w-3.5" :stroke-width="2" />
-          </button>
-        </div>
         </div>
       </div>
 
@@ -134,7 +117,7 @@
       </div>
 
       <template v-else>
-        <!-- Select-all row (edit mode only, right-aligned with checkboxes) -->
+        <!-- Select-all row (edit mode only) -->
         <div v-if="selection.editMode.value && allSelectable.length > 0" class="flex items-center justify-end gap-2 mb-2 pr-1">
           <span v-if="!selection.isEmpty.value" class="text-[13px] font-semibold text-emerald-700">已选 {{ selection.count.value }} 项</span>
           <span class="text-[13px] text-slate-500 cursor-pointer select-none" @click="toggleSelectAll">全选</span>
@@ -148,33 +131,17 @@
         </div>
 
         <SectionList
-          v-if="orderedFolders.length > 0"
-          :items="orderedFolders"
-          label="文件夹"
-          :subtitle-fn="folderStats"
-          :view-mode="viewMode"
-          grid-min-width="200px"
-          mb
+          v-if="orderedChildren.length > 0"
+          :items="orderedChildren"
+          label=""
+          :subtitle-fn="childSubtitle"
+          view-mode="grid"
+          grid-min-width="160px"
           :draggable="isLoggedIn"
           :edit-mode="selection.editMode.value"
           :selected-ids="selection.selectedIds.value"
-          @click-item="(f, e) => onItemClick(f, e)"
-          @reorder="onFolderDragEnd"
-          @contextmenu="(p) => $emit('contextmenu', p)"
-          @toggle-select="onToggleSelect"
-        />
-        <SectionList
-          v-if="orderedBookmarks.length > 0"
-          :items="orderedBookmarks"
-          label="书签"
-          :subtitle-fn="(b) => cleanUrl(b.url || '')"
-          :view-mode="viewMode"
-          grid-min-width="180px"
-          :draggable="isLoggedIn"
-          :edit-mode="selection.editMode.value"
-          :selected-ids="selection.selectedIds.value"
-          @click-item="(b, e) => onItemClick(b, e)"
-          @reorder="onBookmarkDragEnd"
+          @click-item="(item, e) => onItemClick(item, e)"
+          @reorder="(ids) => $emit('reorder', selectedFolderId, ids)"
           @contextmenu="(p) => $emit('contextmenu', p)"
           @toggle-select="onToggleSelect"
         />
@@ -185,7 +152,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted } from 'vue';
-import { AlignJustify, Check, ClipboardPaste, FolderPlus, Inbox, LayoutGrid, LibraryBig, Lock, Pencil, Plus, Scissors, Trash2, X } from 'lucide-vue-next';
+import { Check, ClipboardPaste, FolderPlus, Inbox, LibraryBig, Lock, Pencil, Plus, Scissors, Trash2, X } from 'lucide-vue-next';
 import Breadcrumb from '../layout/Breadcrumb.vue';
 import SectionList from './SectionList.vue';
 import { useSelection } from '../../composables/useSelection';
@@ -224,12 +191,16 @@ function findNodeById(id: string, nodes: BookmarkNode[] = props.tree): BookmarkN
 const children = computed(() => !props.selectedFolderId ? props.tree : (findNodeById(props.selectedFolderId)?.children ?? []));
 const folders = computed(() => children.value.filter(n => n.type === 'folder'));
 const bookmarks = computed(() => children.value.filter(n => n.type === 'bookmark'));
-const orderedFolders = computed(() => [...folders.value].sort((a, b) => a.sort_order - b.sort_order));
-const orderedBookmarks = computed(() => [...bookmarks.value].sort((a, b) => a.sort_order - b.sort_order));
+const orderedChildren = computed(() => [...children.value].sort((a, b) => a.sort_order - b.sort_order));
 const folderCount = computed(() => folders.value.length);
 const bookmarkCount = computed(() => bookmarks.value.length);
 
-const allSelectable = computed(() => [...orderedFolders.value, ...orderedBookmarks.value]);
+function childSubtitle(node: BookmarkNode): string {
+  if (node.type === 'folder') return folderStats(node);
+  return cleanUrl(node.url || '');
+}
+
+const allSelectable = computed(() => [...orderedChildren.value]);
 
 const allSelected = computed(() =>
   allSelectable.value.length > 0 && allSelectable.value.every(n => selection.selectedIds.value.has(n.id))
@@ -250,7 +221,6 @@ const editActions = computed(() => [
   { label: '删除', icon: Trash2, disabled: selection.isEmpty.value, danger: true, action: () => emit('batch-delete') },
 ]);
 
-// Permission toggle: check if all selected are private → show "设为公开", else "设为私有"
 const togglePermissionTarget = computed(() => {
   const ids = [...selection.selectedIds.value];
   const allPrivate = ids.length > 0 && ids.every(id => {
@@ -277,17 +247,14 @@ const breadcrumbPath = computed(() => {
 
 function onItemClick(item: BookmarkNode, event?: MouseEvent) {
   if (selection.editMode.value) {
-    // In edit mode: always toggle selection
     onToggleSelect(item.id, event);
   } else if (selection.isEmpty.value && !(event?.ctrlKey || event?.metaKey || event?.shiftKey)) {
-    // Normal mode, no selection: navigate/open
     if (item.type === 'folder') {
       emit('select-folder', item.id);
     } else {
       emit('open-bookmark', item);
     }
   } else {
-    // Has existing selection or modifier key: toggle selection
     onToggleSelect(item.id, event);
   }
 }
@@ -304,15 +271,6 @@ function onToggleSelect(id: string, event?: MouseEvent) {
 function handleCut() {
   selection.cut();
   selection.exitEditMode();
-}
-
-function onFolderDragEnd(orderedIds: string[]) {
-  if (!props.isLoggedIn) return;
-  emit('reorder', props.selectedFolderId, [...orderedIds, ...orderedBookmarks.value.map(n => n.id)]);
-}
-function onBookmarkDragEnd(orderedIds: string[]) {
-  if (!props.isLoggedIn) return;
-  emit('reorder', props.selectedFolderId, [...orderedFolders.value.map(n => n.id), ...orderedIds]);
 }
 
 // --- Keyboard shortcuts ---

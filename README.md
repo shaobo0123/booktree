@@ -12,7 +12,6 @@
 > 操作入口：登录后点击侧边栏 → 导入 / 导出
 
 ![主界面](images/image1.png)
-![搜索与导入导出](images/image2.png)
 
 ## 快速开始
 
@@ -47,7 +46,7 @@ npm run dev
 镜像由 GitHub Actions 自动构建，部署时直接拉取，无需现场编译：
 
 ```bash
-docker run -d -p 3000:3000 -v booktree_data:/app/data ghcr.io/shaobo0123/booktree:latest
+docker run -d -p 3000:3000 -v booktree_data:/app/data -e DATABASE_URL=file:./data/dev.db ghcr.io/shaobo0123/booktree:latest
 ```
 
 > 服务器需安装 Docker。部署后访问 `http://<服务器IP>:3000`，默认密码 `admin`。  

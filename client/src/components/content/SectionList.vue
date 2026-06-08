@@ -1,6 +1,6 @@
 <template>
   <section :class="mb ? 'mb-8' : ''">
-    <div class="mb-3 flex items-center gap-2">
+    <div v-if="label" class="mb-3 flex items-center gap-2">
       <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ label }}</span>
       <span class="text-[11px] text-slate-300">{{ items.length }}</span>
     </div>
