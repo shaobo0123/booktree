@@ -11,7 +11,8 @@
 
 > 操作入口：登录后点击侧边栏 → 导入 / 导出
 
-![主界面](images/image1.png)
+![主界面1](images/image1.png)
+![主界面2](images/image2.png)
 
 ## 快速开始
 
