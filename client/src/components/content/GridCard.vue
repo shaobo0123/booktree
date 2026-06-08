@@ -13,6 +13,14 @@
       <Check class="h-3 w-3" :stroke-width="3" />
     </span>
 
+    <!-- Drag handle: only shown in edit mode -->
+    <span
+      v-if="editMode"
+      class="flex items-center justify-center mt-0.5 flex-shrink-0 text-slate-400 cursor-grab active:cursor-grabbing drag-handle"
+    >
+      <GripVertical class="h-4 w-4" :stroke-width="1.5" />
+    </span>
+
     <BookmarkNodeIcon :node="node" size="lg" class="mt-0.5 flex-shrink-0" />
     <div class="min-w-0 flex-1">
       <span class="block truncate text-[13px] font-medium text-slate-800">{{ node.title }}</span>
@@ -22,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { Check } from 'lucide-vue-next';
+import { Check, GripVertical } from 'lucide-vue-next';
 import BookmarkNodeIcon from '../shared/BookmarkNodeIcon.vue';
 import type { BookmarkNode } from '../../types/bookmark';
 

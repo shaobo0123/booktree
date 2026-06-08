@@ -31,16 +31,6 @@
 
       <!-- Auth-required actions (only when logged in) -->
       <template v-if="isLoggedIn">
-        <!-- New Folder -->
-        <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="新建文件夹 (Shift+N)" @click="$emit('new-folder', selectedFolderId)">
-          <FolderPlus class="h-4 w-4" :stroke-width="2" />
-        </button>
-
-        <!-- New Bookmark -->
-        <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="新建书签 (N)" @click="$emit('new-bookmark', selectedFolderId)">
-          <BookmarkPlus class="h-4 w-4" :stroke-width="2" />
-        </button>
-
         <!-- More actions dropdown -->
         <div class="relative">
           <button class="inline-flex items-center justify-center h-[30px] w-[30px] rounded-[7px] border-none bg-transparent text-slate-500 cursor-pointer transition-colors hover:bg-slate-100 hover:text-slate-700" title="更多操作" @click="moreOpen = !moreOpen">
@@ -91,9 +81,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import {
-  BookmarkPlus,
   Download,
-  FolderPlus,
   LibraryBig,
   Lock,
   LogIn,
@@ -104,7 +92,6 @@ import {
   Trash2,
   Upload
 } from 'lucide-vue-next';
-import Breadcrumb from './Breadcrumb.vue';
 import type { BookmarkNode } from '../../types/bookmark';
 
 defineProps<{

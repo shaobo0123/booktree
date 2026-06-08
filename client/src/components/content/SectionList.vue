@@ -22,19 +22,19 @@
     </draggable>
 
     <!-- Grid -->
-    <div v-else class="grid gap-3" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridMinWidth}, 1fr))` }">
-      <GridCard
-        v-for="item in items"
-        :key="item.id"
-        :node="item"
-        :subtitle="subtitleFn(item)"
-        :selected="selectedIds?.has(item.id) ?? false"
-        :edit-mode="editMode"
-        @click="(e) => onItemClick(item, e)"
-        @contextmenu="(p) => $emit('contextmenu', p)"
-        @toggle-select="(e) => $emit('toggle-select', item.id, e)"
-      />
-    </div>
+    <draggable v-else v-model="local" item-key="id" class="grid gap-3" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridMinWidth}, 1fr))` }" handle=".drag-handle" ghost-class="opacity-30" :animation="200" :disabled="!draggableEnabled" @change="onDragChange">
+      <template #item="{ element: item }">
+        <GridCard
+          :node="item"
+          :subtitle="subtitleFn(item)"
+          :selected="selectedIds?.has(item.id) ?? false"
+          :edit-mode="editMode"
+          @click="(e) => onItemClick(item, e)"
+          @contextmenu="(p) => $emit('contextmenu', p)"
+          @toggle-select="(e) => $emit('toggle-select', item.id, e)"
+        />
+      </template>
+    </draggable>
   </section>
 </template>
 
