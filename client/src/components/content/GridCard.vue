@@ -4,6 +4,10 @@
     :class="selected ? 'bg-emerald-50' : 'bg-white hover:bg-slate-50'"
     @click="onClick"
     @contextmenu.prevent="onContextMenu"
+    @pointerdown="onPointerDown"
+    @pointerleave="clearLongPress"
+    @pointerup="clearLongPress"
+    @pointercancel="clearLongPress"
   >
     <span
       v-if="editMode || selected"
@@ -47,6 +51,8 @@ const emit = defineEmits<{
   'toggle-select': [event?: MouseEvent];
 }>();
 
+let longPressTimer: number | undefined;
+
 function onClick(e: MouseEvent) {
   if (props.editMode || props.selected) {
     emit('toggle-select', e);
@@ -58,5 +64,20 @@ function onClick(e: MouseEvent) {
 function onContextMenu(e: MouseEvent) {
   if (props.editMode) return;
   emit('contextmenu', { node: props.node, x: e.clientX, y: e.clientY });
+}
+
+function onPointerDown(e: PointerEvent) {
+  if (props.editMode || e.pointerType === 'mouse') return;
+  clearLongPress();
+  longPressTimer = window.setTimeout(() => {
+    emit('contextmenu', { node: props.node, x: e.clientX, y: e.clientY });
+  }, 550);
+}
+
+function clearLongPress() {
+  if (longPressTimer) {
+    window.clearTimeout(longPressTimer);
+    longPressTimer = undefined;
+  }
 }
 </script>

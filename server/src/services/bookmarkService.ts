@@ -271,6 +271,10 @@ export async function updateBookmark(id: string, input: UpdateBookmarkInput): Pr
      faviconBase64, faviconMime, faviconExpiresAt, iconFailedAt, now, id]
   );
 
+  if (existing.type === "folder" && input.read_permission) {
+    batchUpdatePermission([id], readPermission as "public" | "private");
+  }
+
   return rowToNode(db.query("SELECT * FROM bookmarks WHERE id = ?").get(id) as BookmarkRow);
 }
 
@@ -283,9 +287,21 @@ export function removeBookmark(id: string): void {
 export function batchUpdatePermission(ids: string[], permission: "public" | "private"): void {
   if (ids.length === 0) return;
   const now = nowISO();
-  for (const id of ids) {
-    db.run("UPDATE bookmarks SET read_permission = ?, updated_at = ? WHERE id = ?", [permission, now, id]);
+  const targetIds = new Set<string>();
+
+  function collectSubtree(id: string) {
+    targetIds.add(id);
+    const children = db.query("SELECT id FROM bookmarks WHERE parent_id = ?").all(id) as { id: string }[];
+    for (const child of children) collectSubtree(child.id);
   }
+
+  for (const id of ids) collectSubtree(id);
+
+  const stmt = db.prepare("UPDATE bookmarks SET read_permission = ?, updated_at = ? WHERE id = ?");
+  const tx = db.transaction((targets: string[]) => {
+    for (const id of targets) stmt.run(permission, now, id);
+  });
+  tx([...targetIds]);
 }
 
 export function batchDeleteBookmarks(ids: string[]): void {

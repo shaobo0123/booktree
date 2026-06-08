@@ -1,6 +1,28 @@
 <template>
   <div class="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
+    <AdminPanel
+      v-if="isAdminRoute"
+      :tree="tree"
+      :loading="loading"
+      :error="loadError"
+      :selected-folder-id="selectedFolderId"
+      :is-logged-in="isLoggedIn"
+      @back="goBackToBookmarks"
+      @login="handleOpenLoginModal"
+      @export="openExportModal"
+      @import="handleImport"
+      @permission-overview="permissionOverviewOpen = true"
+      @clear-favicons="handleClearFavicons"
+      @create-folder="handleCreateFolderInline"
+      @create-bookmark="handleCreateBookmarkInline"
+      @edit-node="openEdit"
+      @delete-node="handleDelete"
+      @set-permission="handleSetPermission"
+      @reorder="handleReorder"
+    />
+
     <MainLayout
+      v-else
       :tree="tree"
       :loading="loading"
       :error="loadError"
@@ -21,6 +43,7 @@
       @toggle-sidebar="toggleSidebarExpanded"
       @clear-favicons="handleClearFavicons"
       @permission-overview="permissionOverviewOpen = true"
+      @admin="goToAdmin"
       @login="handleOpenLoginModal"
       @logout="handleLogout"
       @update:searchOpen="(val: boolean) => searchOpen = val"
@@ -96,7 +119,6 @@ import {
   LogIn,
   LogOut,
   Pencil,
-  Scissors,
   Trash2
 } from 'lucide-vue-next';
 import {
@@ -113,6 +135,7 @@ import {
   updateBookmark
 } from './api/bookmarks';
 import MainLayout from './components/layout/MainLayout.vue';
+import AdminPanel from './components/admin/AdminPanel.vue';
 import BookmarkFormModal from './components/modal/BookmarkFormModal.vue';
 import ExportModal from './components/modal/ExportModal.vue';
 import PermissionOverviewModal from './components/modal/PermissionOverviewModal.vue';
@@ -135,6 +158,7 @@ const selectedFolderId = ref<string | null>(route.params.id as string ?? null);
 const viewMode = ref<ViewMode>('list');
 const searchOpen = ref(false);
 const permissionOverviewOpen = ref(false);
+const isAdminRoute = computed(() => route.name === 'admin');
 
 // --- Selection ---
 const selection = provideSelection();
@@ -147,6 +171,7 @@ const loginError = ref<string | null>(null);
 // Sync URL ← selectedFolderId
 watch(selectedFolderId, (id) => {
   selection.clear();
+  if (isAdminRoute.value) return;
   if (!id) { if (route.path !== '/') router.replace('/'); return; }
   const node = findNodeInTree(tree.value, id);
   const title = node ? encodeURIComponent(node.title) : '';
@@ -195,6 +220,21 @@ const breadcrumbPath = computed(() => {
 function selectFolder(id: string | null) {
   selection.exitEditMode();
   selectedFolderId.value = id;
+}
+
+function goToAdmin() {
+  selection.exitEditMode();
+  router.push('/admin');
+}
+
+function goBackToBookmarks() {
+  if (!selectedFolderId.value) {
+    router.push('/');
+    return;
+  }
+  const node = findNodeInTree(tree.value, selectedFolderId.value);
+  const title = node ? encodeURIComponent(node.title) : '';
+  router.push(title ? `/folder/${selectedFolderId.value}/${title}` : `/folder/${selectedFolderId.value}`);
 }
 
 // --- Tree loading ---
@@ -284,15 +324,6 @@ function selectForEdit(node: BookmarkNode) {
   selection.select(node.id);
 }
 
-function cutToClipboard(node: BookmarkNode) {
-  if (node.parent_id !== selectedFolderId.value) {
-    selectFolder(node.parent_id);
-  }
-  selection.clear();
-  selection.select(node.id);
-  selection.cut();
-}
-
 function closeModal() {
   modalOpen.value = false;
 }
@@ -350,6 +381,15 @@ async function handleBatchPermission(permission: 'public' | 'private') {
   try {
     await batchUpdatePermission(ids, permission);
     selection.exitEditMode();
+    await loadTree();
+  } catch (error) {
+    window.alert(error instanceof Error ? error.message : '修改权限失败');
+  }
+}
+
+async function handleSetPermission(node: BookmarkNode, permission: 'public' | 'private') {
+  try {
+    await batchUpdatePermission([node.id], permission);
     await loadTree();
   } catch (error) {
     window.alert(error instanceof Error ? error.message : '修改权限失败');
@@ -456,12 +496,7 @@ const contextMenuItems = computed<MenuItem[]>(() => {
     items.push({
       label: '编辑',
       icon: Pencil,
-      action: () => { if (node) selectForEdit(node); }
-    });
-    items.push({
-      label: '剪切',
-      icon: Scissors,
-      action: () => { if (node) cutToClipboard(node); }
+      action: () => { if (node) openEdit(node); }
     });
   }
 
@@ -580,7 +615,7 @@ useKeyboard(
     {
       key: 'n',
       handler: () => {
-        if (!isLoggedIn.value) return;
+        if (!isLoggedIn.value || !isAdminRoute.value) return;
         handleCreateBookmarkInline(selectedFolderId.value);
       }
     },
@@ -588,7 +623,7 @@ useKeyboard(
       key: 'N',
       shift: true,
       handler: () => {
-        if (!isLoggedIn.value) return;
+        if (!isLoggedIn.value || !isAdminRoute.value) return;
         handleCreateFolderInline(selectedFolderId.value);
       }
     },

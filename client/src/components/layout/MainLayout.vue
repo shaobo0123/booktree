@@ -8,13 +8,8 @@
       :is-logged-in="isLoggedIn"
       :username="username"
       @toggle-sidebar="sidebarOpen = !sidebarOpen"
-      @export="$emit('export')"
-      @import="(file) => $emit('import', file)"
       @select-breadcrumb="(id) => $emit('select-folder', id)"
-      @new-folder="(parentId) => $emit('create-folder', parentId)"
-      @new-bookmark="(parentId) => $emit('create-bookmark', parentId)"
-      @clear-favicons="$emit('clear-favicons')"
-      @permission-overview="$emit('permission-overview')"
+      @admin="$emit('admin')"
       @login="$emit('login')"
       @logout="$emit('logout')"
     />
@@ -26,7 +21,6 @@
             <span class="text-[13px] font-semibold text-slate-700">目录</span>
             <div class="flex items-center gap-1">
               <button class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" title="取消固定" @click="sidebarPinned = false"><PinOff class="h-4 w-4" :stroke-width="2" /></button>
-              <button class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" title="新建根级文件夹" @click="$emit('create-folder', null)"><FolderPlus class="h-4 w-4" :stroke-width="2" /></button>
             </div>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto column-scrollbar px-1.5 pb-4">
@@ -42,7 +36,6 @@
             <span class="text-[13px] font-semibold text-slate-700">目录</span>
             <div class="flex items-center gap-1">
               <button class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" title="固定侧边栏" @click="sidebarPinned = true"><Pin class="h-4 w-4" :stroke-width="2" /></button>
-              <button class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600" title="新建根级文件夹" @click="$emit('create-folder', null)"><FolderPlus class="h-4 w-4" :stroke-width="2" /></button>
             </div>
           </div>
           <div class="min-h-0 flex-1 overflow-y-auto column-scrollbar px-1.5 pb-4">
@@ -76,15 +69,7 @@
           :is-logged-in="isLoggedIn"
           @select-folder="(id) => { $emit('select-folder', id); if (!sidebarPinned) sidebarOpen = false; }"
           @open-bookmark="(node) => $emit('open-bookmark', node)"
-          @reorder="(parentId, ids) => $emit('reorder', parentId, ids)"
-          @update:viewMode="(mode) => $emit('update:viewMode', mode)"
-          @create-folder="(parentId) => $emit('create-folder', parentId)"
-          @create-bookmark="(parentId) => $emit('create-bookmark', parentId)"
           @contextmenu="(payload) => $emit('contextmenu', payload)"
-          @edit-selected="$emit('edit-selected')"
-          @batch-delete="$emit('batch-delete')"
-          @batch-permission="(p) => $emit('batch-permission', p)"
-          @paste="(targetId) => $emit('paste', targetId)"
         />
       </div>
     </div>
@@ -100,7 +85,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
-import { FolderPlus, Pin, PinOff } from 'lucide-vue-next';
+import { Pin, PinOff } from 'lucide-vue-next';
 import Sidebar from '../sidebar/Sidebar.vue';
 import Toolbar from './Toolbar.vue';
 import ContentArea from '../content/ContentArea.vue';
@@ -124,6 +109,7 @@ const emit = defineEmits<{
   'contextmenu': [payload: { node: BookmarkNode; x: number; y: number }];
   'export': []; 'import': [file: File]; 'toggle-sidebar': [id: string]; 'clear-favicons': [];
   'permission-overview': [];
+  'admin': [];
   'login': []; 'logout': [];
   'update:searchOpen': [value: boolean]; 'update:viewMode': [mode: ViewMode];
   'edit-selected': [];
