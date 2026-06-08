@@ -22,7 +22,7 @@
     </draggable>
 
     <!-- Grid -->
-    <draggable v-else v-model="local" item-key="id" class="grid gap-3" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridMinWidth}, 1fr))` }" handle=".drag-handle" ghost-class="opacity-30" :animation="200" :disabled="!draggableEnabled" @change="onDragChange">
+    <draggable v-else v-model="local" item-key="id" class="grid gap-4" :style="{ gridTemplateColumns: `repeat(auto-fill, minmax(${gridMinWidth}, 1fr))` }" handle=".drag-handle" ghost-class="opacity-30" :animation="200" :disabled="!draggableEnabled" @change="onDragChange">
       <template #item="{ element: item }">
         <GridCard
           :node="item"

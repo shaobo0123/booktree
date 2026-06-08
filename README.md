@@ -2,13 +2,6 @@
 
 在线书签管理器，支持无限嵌套文件夹、全局/当前双视图、拖拽排序、导入导出。
 
-## 功能预览
-
-- **全局视图**：右侧展示整棵书签树，按文件夹层级分段呈现，适合快速浏览和定位。
-- **当前视图**：聚焦左侧选中的文件夹，保留创建、编辑、删除、拖拽排序等管理能力。
-- **目录锚点**：左侧目录保留完整层级，点击后定位右侧内容；全局视图滚动时也会同步选中目录。
-- **响应式布局**：桌面端展示完整侧边栏，移动端可切换抽屉式目录。
-
 ### 桌面端
 
 ![桌面端全局视图](images/image1.png)
@@ -17,10 +10,9 @@
 
 ### 移动端
 
-<div style="display: flex; gap: 12px; align-items: flex-start;">
-  <img src="images/image3.png" alt="移动端全局视图" width="32%" />
-  <img src="images/image4.png" alt="移动端当前视图" width="32%" />
-  <img src="images/image5.png" alt="移动端目录抽屉" width="32%" />
+<div style="display: flex; gap: 20px; align-items: flex-start;">
+  <img src="images/image3.png" alt="移动端全局视图" width="45%" />
+  <img src="images/image4.png" alt="移动端当前视图" width="45%" />
 </div>
 
 ## 浏览器书签导入导出

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative flex items-start gap-3 px-4 py-3.5 rounded-xl cursor-pointer transition-colors group"
+    class="relative flex min-h-[96px] items-center gap-5 rounded-xl px-6 py-4 cursor-pointer transition-colors group"
     :class="selected ? 'bg-emerald-50' : 'bg-white hover:bg-slate-50'"
     @click="onClick"
     @contextmenu.prevent="onContextMenu"
@@ -25,10 +25,10 @@
       <GripVertical class="h-4 w-4" :stroke-width="1.5" />
     </span>
 
-    <BookmarkNodeIcon :node="node" size="lg" class="mt-0.5 flex-shrink-0" />
+    <BookmarkNodeIcon :node="node" size="lg" class="flex-shrink-0" />
     <div class="min-w-0 flex-1">
-      <span class="block truncate text-[13px] font-medium text-slate-800">{{ node.title }}</span>
-      <span class="mt-0.5 block truncate text-[11px] text-slate-400">{{ subtitle }}</span>
+      <span class="block truncate text-[15px] font-medium leading-5 text-slate-800">{{ node.title }}</span>
+      <span class="mt-1 block truncate text-[13px] leading-5 text-slate-400">{{ subtitle }}</span>
     </div>
   </div>
 </template>

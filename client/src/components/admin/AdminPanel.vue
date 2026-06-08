@@ -1,6 +1,6 @@
 <template>
   <div class="flex h-full flex-col overflow-hidden bg-slate-50">
-    <header class="flex h-12 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4">
+    <header class="flex min-h-12 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2 sm:flex-nowrap sm:gap-3 sm:px-4">
       <div class="flex min-w-0 items-center gap-2">
         <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700" title="返回浏览" @click="$emit('back')">
           <ArrowLeft class="h-4 w-4" :stroke-width="2" />
@@ -11,7 +11,7 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-1.5">
+      <div class="ml-auto flex items-center gap-1.5">
         <template v-if="isLoggedIn">
           <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100" title="导入" @click="fileInput?.click()"><Upload class="h-4 w-4" :stroke-width="2" /></button>
           <button class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100" title="导出" @click="$emit('export')"><Download class="h-4 w-4" :stroke-width="2" /></button>
@@ -28,7 +28,7 @@
 
     <div v-if="loading" class="flex flex-1 items-center justify-center text-sm text-slate-400">加载中...</div>
     <div v-else-if="error" class="flex flex-1 items-center justify-center px-6 text-center text-sm text-rose-500">{{ error }}</div>
-    <div v-else class="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 lg:px-8">
+    <div v-else class="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
       <div v-if="!isLoggedIn" class="mx-auto mt-16 max-w-sm text-center">
         <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100">
           <Lock class="h-6 w-6 text-slate-300" :stroke-width="2" />
@@ -53,12 +53,12 @@
           <div v-if="rows.length === 0" class="px-4 py-10 text-center text-sm text-slate-400">暂无项目</div>
 
           <div v-else class="divide-y divide-slate-100">
-            <div v-for="row in rows" :key="row.node.id" class="grid gap-2 px-3 py-3 md:grid-cols-[minmax(260px,1fr)_90px_90px_180px] md:items-center md:gap-3 md:px-4">
-              <div class="flex min-w-0 items-center gap-2" :style="{ paddingLeft: `${row.depth * 20}px` }">
-                <button v-if="row.node.type === 'folder'" class="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" @click="toggle(row.node.id)">
+            <div v-for="row in rows" :key="row.node.id" class="grid gap-3 px-3 py-3 md:grid-cols-[minmax(260px,1fr)_90px_90px_180px] md:items-center md:gap-3 md:px-4">
+              <div class="flex min-w-0 items-center gap-2" :style="{ paddingLeft: `${rowIndent(row.depth)}px` }">
+                <button v-if="row.node.type === 'folder'" class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 md:h-6 md:w-6" @click="toggle(row.node.id)">
                   <ChevronRight class="h-4 w-4 transition-transform" :class="expanded.has(row.node.id) ? 'rotate-90' : ''" :stroke-width="2" />
                 </button>
-                <span v-else class="h-6 w-6 flex-shrink-0" />
+                <span v-else class="h-8 w-8 flex-shrink-0 md:h-6 md:w-6" />
                 <BookmarkNodeIcon :node="row.node" />
                 <span class="min-w-0">
                   <span class="block truncate text-[13px] font-medium text-slate-800">{{ row.node.title }}</span>
@@ -66,12 +66,15 @@
                 </span>
               </div>
 
-              <div class="text-[12px] text-slate-500 md:text-[13px]">{{ row.node.type === 'folder' ? '文件夹' : '书签' }}</div>
-              <button class="inline-flex h-7 w-fit items-center rounded-md border px-2 text-[12px] transition-colors" :class="row.node.read_permission === 'public' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'" @click="$emit('set-permission', row.node, row.node.read_permission === 'public' ? 'private' : 'public')">
-                {{ row.node.read_permission === 'public' ? '公开' : '私有' }}
-              </button>
+              <div class="hidden text-[12px] text-slate-500 md:block md:text-[13px]">{{ row.node.type === 'folder' ? '文件夹' : '书签' }}</div>
+              <div class="flex items-center justify-between gap-2 pl-10 md:block md:pl-0">
+                <span class="text-[12px] text-slate-400 md:hidden">{{ row.node.type === 'folder' ? '文件夹' : '书签' }}</span>
+                <button class="inline-flex h-8 w-fit items-center rounded-md border px-2.5 text-[12px] transition-colors md:h-7 md:px-2" :class="row.node.read_permission === 'public' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'" @click="$emit('set-permission', row.node, row.node.read_permission === 'public' ? 'private' : 'public')">
+                  {{ row.node.read_permission === 'public' ? '公开' : '私有' }}
+                </button>
+              </div>
 
-              <div class="flex items-center justify-end gap-1">
+              <div class="flex items-center gap-1 overflow-x-auto pl-10 md:justify-end md:overflow-visible md:pl-0">
                 <button class="icon-btn" :disabled="row.index === 0" title="上移" @click="move(row, -1)"><ArrowUp class="h-4 w-4" :stroke-width="2" /></button>
                 <button class="icon-btn" :disabled="row.index === row.siblingIds.length - 1" title="下移" @click="move(row, 1)"><ArrowDown class="h-4 w-4" :stroke-width="2" /></button>
                 <button v-if="row.node.type === 'folder'" class="icon-btn" title="新建子书签" @click="$emit('create-bookmark', row.node.id)"><Plus class="h-4 w-4" :stroke-width="2" /></button>
@@ -152,6 +155,10 @@ function move(row: Row, offset: -1 | 1) {
   emit('reorder', row.parentId, next);
 }
 
+function rowIndent(depth: number): number {
+  return Math.min(depth, 3) * 14;
+}
+
 function findNode(id: string, nodes: BookmarkNode[] = props.tree): BookmarkNode | null {
   for (const node of nodes) {
     if (node.id === id) return node;
@@ -186,6 +193,6 @@ function folderStats(node: BookmarkNode): string {
 
 <style scoped>
 .icon-btn {
-  @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-30;
+  @apply inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-30 md:h-8 md:w-8;
 }
 </style>
