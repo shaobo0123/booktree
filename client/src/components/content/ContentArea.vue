@@ -1,5 +1,5 @@
 <template>
-  <div ref="containerRef" class="flex min-h-0 flex-1 flex-col overflow-y-auto column-scrollbar">
+  <div ref="containerRef" class="flex min-h-0 flex-1 flex-col overflow-y-auto column-scrollbar" @scroll.passive="onContainerScroll">
     <!-- Loading -->
     <div v-if="loading" class="flex flex-1 items-center justify-center">
       <div class="space-y-3 text-center">
@@ -173,6 +173,7 @@
             <div
               v-if="block.kind === 'folder'"
               :id="folderAnchorId(block.node.id)"
+              :data-folder-anchor="block.node.id"
               class="group flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 transition-colors"
               :class="[folderHeadingClass(block.depth), selectedFolderId === block.node.id ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100' : 'text-slate-700 hover:bg-slate-50']"
               :style="{ paddingLeft: `${headingIndent(block.depth)}px` }"
@@ -209,6 +210,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Check, ClipboardPaste, Folder, FolderCog, FolderPlus, Inbox, LibraryBig, ListTree, Lock, Pencil, Plus, Scissors, Trash2, X } from 'lucide-vue-next';
 import Breadcrumb from '../layout/Breadcrumb.vue';
 import SectionList from './SectionList.vue';
+import { useSidebarState } from '../../composables/useSidebarState';
 import { useSelection } from '../../composables/useSelection';
 import type { BookmarkNode, ViewMode } from '../../types/bookmark';
 
@@ -243,9 +245,13 @@ type ContentPage = 'overview' | 'manage';
 const ACTIVE_PAGE_STORAGE_KEY = 'tree-bookmarks.content-page';
 
 const selection = useSelection();
+const { expandToNode } = useSidebarState();
 const activePage = ref<ContentPage>(loadActivePage());
 const containerRef = ref<HTMLElement | null>(null);
 const emptySelectedIds = new Set<string>();
+const selectionFromScroll = ref(false);
+let scrollFrame: number | null = null;
+let suppressScrollSelectionUntil = 0;
 
 function findNodeById(id: string, nodes: BookmarkNode[] = props.tree): BookmarkNode | null {
   for (const node of nodes) { if (node.id === id) return node; const f = findNodeById(id, node.children); if (f) return f; }
@@ -372,7 +378,12 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown));
-onUnmounted(() => window.removeEventListener('keydown', onKeydown));
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown);
+  if (scrollFrame !== null) {
+    window.cancelAnimationFrame(scrollFrame);
+  }
+});
 
 watch(activePage, (page) => {
   saveActivePage(page);
@@ -380,7 +391,13 @@ watch(activePage, (page) => {
   selection.clear();
   if (page === 'overview') scrollToSelectedFolder();
 });
-watch(() => props.selectedFolderId, () => scrollToSelectedFolder(), { flush: 'post' });
+watch(() => props.selectedFolderId, () => {
+  if (selectionFromScroll.value) {
+    selectionFromScroll.value = false;
+    return;
+  }
+  scrollToSelectedFolder();
+}, { flush: 'post' });
 watch(displayBlocks, () => scrollToSelectedFolder(), { flush: 'post' });
 
 // --- Shared helpers ---
@@ -458,10 +475,62 @@ function folderHeadingClass(depth: number): string {
   if (depth === 1) return 'mt-3 text-[14px] font-semibold';
   return 'mt-2 text-[13px] font-medium';
 }
+function onContainerScroll() {
+  if (activePage.value !== 'overview' || Date.now() < suppressScrollSelectionUntil) return;
+  if (scrollFrame !== null) return;
+
+  scrollFrame = window.requestAnimationFrame(() => {
+    scrollFrame = null;
+    updateSelectedFolderFromScroll();
+  });
+}
+function updateSelectedFolderFromScroll() {
+  const container = containerRef.value;
+  if (!container || activePage.value !== 'overview') return;
+
+  const headings = [...container.querySelectorAll<HTMLElement>('[data-folder-anchor]')];
+  const containerTop = container.getBoundingClientRect().top;
+  const activationLine = containerTop + 120;
+  let activeId: string | null = null;
+
+  for (const heading of headings) {
+    if (heading.getBoundingClientRect().top <= activationLine) {
+      activeId = heading.dataset.folderAnchor ?? null;
+    } else {
+      break;
+    }
+  }
+
+  if (container.scrollTop < 24) {
+    activeId = null;
+  }
+
+  if (activeId !== props.selectedFolderId) {
+    if (activeId) {
+      expandToNode(findAncestorFolderIds(activeId));
+    }
+    selectionFromScroll.value = true;
+    emit('select-folder', activeId);
+  }
+}
+function findAncestorFolderIds(id: string): string[] {
+  function walk(nodes: BookmarkNode[], path: string[] = []): string[] | null {
+    for (const node of nodes) {
+      if (node.type !== 'folder') continue;
+      if (node.id === id) return path;
+      const found = walk(node.children, [...path, node.id]);
+      if (found) return found;
+    }
+    return null;
+  }
+  return walk(props.tree) ?? [];
+}
 async function scrollToSelectedFolder() {
   await nextTick();
   const container = containerRef.value;
   if (!container || activePage.value !== 'overview') return;
+
+  suppressScrollSelectionUntil = Date.now() + 700;
 
   if (!props.selectedFolderId) {
     container.scrollTo({ top: 0, behavior: 'smooth' });
