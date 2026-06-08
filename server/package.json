@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "bun --watch src/main.ts",
     "start": "bun src/main.ts",
-    "build": "bun build src/main.ts --outdir=dist --target=bun"
+    "build": "bun build src/main.ts --outdir=dist --target=bun",
+    "seed:official-sites": "bun scripts/seedOfficialSites.ts"
   },
   "dependencies": {
     "cheerio": "^1.0.0"
